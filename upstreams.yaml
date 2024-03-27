@@ -1,0 +1,42 @@
+upstreams:
+  - name: "stub-server-1"
+    servers:
+      - "http://localhost:8080"
+      - "http://localhost:8081"
+      - "http://localhost:8082"
+    healthCheck:
+      url: "/health"
+      interval: 5s
+      timeout: 1s
+    rateLimit:
+      limit: 100
+      interval: 1m
+
+    #LB gets a request -> healthcheck - > upstream X
+
+  - name: "stub-server-2"
+    servers:
+      - "http://localhost:8083"
+      - "http://localhost:8084"
+      - "http://localhost:8085"
+    healthCheck:
+      url: "/health"
+      interval: 5s
+      timeout: 1s
+    rateLimit:
+      limit: 100
+      interval: 1m
+
+    #LB IP/hostname -> upstream A, upstream B, upstream C
+
+    # service-a.com, service-b.com, service-c.com -> upstream A, upstream B, upstream C
+    # service-a, .... -> LB IPs (A record)
+
+    # A record: example.com  -> 123.2343.213.123
+    # CName record: example-2.com -> lb.com -> (A record)  123.2343.213.123
+
+    # LB Figureout which upstream to send the request to ?
+    # choreo.dev [IP1, IP2, IP3] 
+    #wso2.com [IP1, IP2, IP3]
+    
+      
