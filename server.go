@@ -6,15 +6,29 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"strings"
 )
 
 var currentServerIndex int = 0
 
 func startServer(config *Config) {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		upstream := config.Upstreams[0]
+		upstreamName := r.Header.Get("X-Upstream-Name")
 
-		target := upstream.Servers[currentServerIndex]
+		var selectedUpstream *Upstream
+		for _, upstream := range config.Upstreams {
+			if strings.EqualFold(upstream.Name, upstreamName) {
+				selectedUpstream = &upstream
+				break
+			}
+		}
+
+		if selectedUpstream == nil || len(selectedUpstream.Servers) == 0 {
+			http.Error(w, "Upstream not found or has no servers", http.StatusNotFound)
+			return
+		}
+
+		target := selectedUpstream.Servers[currentServerIndex]
 
 		url, err := url.Parse(target)
 		if err != nil {
@@ -26,7 +40,7 @@ func startServer(config *Config) {
 
 		proxy := httputil.NewSingleHostReverseProxy(url)
 		proxy.ServeHTTP(w, r)
-		currentServerIndex = (currentServerIndex + 1) % len(upstream.Servers)
+		currentServerIndex = (currentServerIndex + 1) % len(selectedUpstream.Servers)
 	})
 	fmt.Println()
 	fmt.Printf("Load Balancer started on port 3000\n")
