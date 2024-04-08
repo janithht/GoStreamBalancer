@@ -1,13 +1,15 @@
-package main
+package healthchecks
 
 import (
 	"fmt"
 	"log"
 	"net/http"
 	"time"
+
+	"github.com/janithht/GoStreamBalancer/internal/config"
 )
 
-func checkServerHealth(server string, healthCheckConfig HealthCheck) bool {
+func checkServerHealth(server string, healthCheckConfig config.HealthCheck) bool {
 	client := http.Client{
 		Timeout: healthCheckConfig.Timeout,
 	}
@@ -15,7 +17,7 @@ func checkServerHealth(server string, healthCheckConfig HealthCheck) bool {
 	return err == nil && res.StatusCode == 200
 }
 
-func performHealthChecks(config *Config) {
+func PerformHealthChecks(config *config.Config) {
 	for {
 		fmt.Println()
 		for _, upstream := range config.Upstreams {

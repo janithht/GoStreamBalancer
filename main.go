@@ -1,28 +1,25 @@
 package main
 
 import (
-	"fmt"
 	"log"
-	"os"
 
-	"gopkg.in/yaml.v2"
+	"github.com/janithht/GoStreamBalancer/internal/config"
+
+	"github.com/janithht/GoStreamBalancer/internal/server"
+
+	"github.com/janithht/GoStreamBalancer/internal/healthchecks"
 )
 
 func main() {
-	var config Config
 
-	data, err := os.ReadFile("config.yaml") // Read the file
+	cfg, err := config.Readconfig("config.yaml")
+
 	if err != nil {
-		log.Fatalf("error: %v", err)
+		log.Fatalf("Error reading config: %v", err)
+		return
 	}
+	log.Printf("Config parsed successfully: %v\n", cfg)
 
-	err = yaml.Unmarshal(data, &config) // Unmarshal the data to strcuts defined above
-	if err != nil {
-		log.Fatalf("error parsing config file: %v", err)
-	}
-	fmt.Println()
-	fmt.Println("Config parsed successfully:", config)
-
-	go performHealthChecks(&config)
-	startServer(&config)
+	go healthchecks.PerformHealthChecks(cfg)
+	server.StartServer(cfg.Upstreams)
 }

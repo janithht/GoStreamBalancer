@@ -1,4 +1,4 @@
-package main
+package server
 
 import (
 	"fmt"
@@ -7,16 +7,18 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"strings"
+
+	"github.com/janithht/GoStreamBalancer/internal/config"
 )
 
 var currentServerIndex int = 0
 
-func startServer(config *Config) {
+func StartServer(upstreams []config.Upstream) {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		upstreamName := r.Header.Get("X-Upstream-Name")
 
-		var selectedUpstream *Upstream
-		for _, upstream := range config.Upstreams {
+		var selectedUpstream *config.Upstream
+		for _, upstream := range upstreams {
 			if strings.EqualFold(upstream.Name, upstreamName) {
 				selectedUpstream = &upstream
 				break
@@ -40,7 +42,7 @@ func startServer(config *Config) {
 
 		proxy := httputil.NewSingleHostReverseProxy(url)
 		proxy.ServeHTTP(w, r)
-		currentServerIndex = (currentServerIndex + 1) % len(selectedUpstream.Servers)
+		currentServerIndex = (currentServerIndex + 1) % len(selectedUpstream.Servers) //Todo
 	})
 	fmt.Println()
 	fmt.Printf("Load Balancer started on port 3000\n")
