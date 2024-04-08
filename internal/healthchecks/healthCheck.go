@@ -23,7 +23,6 @@ func performHealthCheckForUpstream(upstream config.Upstream) {
 			server := upstream.Servers[i]
 			if !checkServerHealth(server, upstream.HealthCheck) {
 				log.Printf("Server %s failed health check, removing from pool\n", server)
-				// Properly synchronize server removal here.
 			}
 		}
 		time.Sleep(upstream.HealthCheck.Interval)
