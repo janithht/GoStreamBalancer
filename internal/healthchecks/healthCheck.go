@@ -20,31 +20,19 @@ var (
 	mapMutex        = &sync.Mutex{}
 )
 
-func checkServerHealth(ctx context.Context, server string, healthCheckConfig config.HealthCheck) bool {
+func checkServerHealth(server string, healthCheckConfig config.HealthCheck) bool {
 	client := http.Client{
 		Timeout: healthCheckConfig.Timeout,
 	}
-	req, err := http.NewRequestWithContext(ctx, "GET", server+healthCheckConfig.Url, nil)
-	if err != nil {
-		log.Println("Error creating request:", err)
-		return false
-	}
-
-	res, err := client.Do(req)
-	if err != nil {
-		log.Println("Error performing health check:", err)
-		return false
-	}
-	defer res.Body.Close()
-
-	return res.StatusCode == 200
+	res, err := client.Get(server + healthCheckConfig.Url)
+	return err == nil && res.StatusCode == 200
 }
 
 func worker(ctx context.Context, id int, tasks <-chan HealthCheckTask) {
 	for {
 		select {
 		case task := <-tasks:
-			healthStatus := checkServerHealth(ctx, task.Server, task.HealthCheckConfig)
+			healthStatus := checkServerHealth(task.Server, task.HealthCheckConfig)
 			mapMutex.Lock()
 			serverHealthMap[task.Server] = healthStatus
 			mapMutex.Unlock()
