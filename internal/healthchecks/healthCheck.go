@@ -1,7 +1,7 @@
 package healthchecks
 
 import (
-	"fmt"
+	"context"
 	"log"
 	"net/http"
 	"sync"
@@ -20,39 +20,56 @@ var (
 	mapMutex        = &sync.Mutex{}
 )
 
-func checkServerHealth(server string, healthCheckConfig config.HealthCheck) bool {
+func checkServerHealth(ctx context.Context, server string, healthCheckConfig config.HealthCheck) bool {
 	client := http.Client{
 		Timeout: healthCheckConfig.Timeout,
 	}
-	res, err := client.Get(server + healthCheckConfig.Url)
-	return err == nil && res.StatusCode == 200
+	req, err := http.NewRequestWithContext(ctx, "GET", server+healthCheckConfig.Url, nil)
+	if err != nil {
+		log.Println("Error creating request:", err)
+		return false
+	}
+
+	res, err := client.Do(req)
+	if err != nil {
+		log.Println("Error performing health check:", err)
+		return false
+	}
+	defer res.Body.Close()
+
+	return res.StatusCode == 200
 }
 
-func worker(id int, tasks <-chan HealthCheckTask) {
-	for task := range tasks {
-		healthStatus := checkServerHealth(task.Server, task.HealthCheckConfig)
-		mapMutex.Lock()
-		serverHealthMap[task.Server] = healthStatus
-		mapMutex.Unlock()
+func worker(ctx context.Context, id int, tasks <-chan HealthCheckTask) {
+	for {
+		select {
+		case task := <-tasks:
+			healthStatus := checkServerHealth(ctx, task.Server, task.HealthCheckConfig)
+			mapMutex.Lock()
+			serverHealthMap[task.Server] = healthStatus
+			mapMutex.Unlock()
 
-		if !healthStatus {
-			log.Printf("[Worker %d] Server %s failed health check, removing from pool\n", id, task.Server)
-		} else {
-			log.Printf("[Worker %d] Server %s passed health check\n", id, task.Server)
+			if !healthStatus {
+				log.Printf("[Worker %d] Server %s failed health check, removing from pool\n", id, task.Server)
+			} else {
+				log.Printf("[Worker %d] Server %s passed health check\n", id, task.Server)
+			}
+		case <-ctx.Done():
+			log.Printf("[Worker %d] Exiting due to context cancellation.\n", id)
+			return
 		}
 	}
 }
 
-func PerformHealthChecks(cfg *config.Config) {
+func PerformHealthChecks(ctx context.Context, cfg *config.Config) {
 	const numWorkers = 10
 	tasks := make(chan HealthCheckTask, 100)
 
 	for i := 0; i < numWorkers; i++ {
-		go worker(i, tasks)
+		go worker(ctx, i, tasks)
 	}
 
 	for {
-		fmt.Println()
 		for _, upstream := range cfg.Upstreams {
 			for _, server := range upstream.Servers {
 				task := HealthCheckTask{
