@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/janithht/GoStreamBalancer/internal/config"
@@ -13,6 +14,11 @@ type HealthCheckTask struct {
 	Server            string
 	HealthCheckConfig config.HealthCheck
 }
+
+var (
+	serverHealthMap = make(map[string]bool)
+	mapMutex        = &sync.Mutex{}
+)
 
 func checkServerHealth(server string, healthCheckConfig config.HealthCheck) bool {
 	client := http.Client{
@@ -24,7 +30,12 @@ func checkServerHealth(server string, healthCheckConfig config.HealthCheck) bool
 
 func worker(id int, tasks <-chan HealthCheckTask) {
 	for task := range tasks {
-		if !checkServerHealth(task.Server, task.HealthCheckConfig) {
+		healthStatus := checkServerHealth(task.Server, task.HealthCheckConfig)
+		mapMutex.Lock()
+		serverHealthMap[task.Server] = healthStatus
+		mapMutex.Unlock()
+
+		if !healthStatus {
 			log.Printf("[Worker %d] Server %s failed health check, removing from pool\n", id, task.Server)
 		} else {
 			log.Printf("[Worker %d] Server %s passed health check\n", id, task.Server)
