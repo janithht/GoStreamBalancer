@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/janithht/GoStreamBalancer/internal/config"
@@ -13,6 +14,8 @@ type HealthCheckTask struct {
 	Server            *config.UpstreamServer
 	HealthCheckConfig config.HealthCheck
 }
+
+var mutex = &sync.Mutex{}
 
 func checkServerHealth(server string, healthCheckConfig config.HealthCheck) bool {
 	client := http.Client{
@@ -43,11 +46,27 @@ func worker(ctx context.Context, id int, tasks <-chan HealthCheckTask) {
 
 func PerformHealthChecks(ctx context.Context, cfg *config.Config) {
 	const numWorkers = 10
-	tasks := make(chan HealthCheckTask, 100)
+	taskQueue := make([]HealthCheckTask, 0)
+	taskChan := make(chan HealthCheckTask, 100)
 
 	for i := 0; i < numWorkers; i++ {
-		go worker(ctx, i, tasks)
+		go worker(ctx, i, taskChan)
 	}
+
+	go func() {
+		for {
+			mutex.Lock()
+			if len(taskQueue) > 0 {
+				task := taskQueue[0]
+				taskQueue = taskQueue[1:]
+				mutex.Unlock()
+				taskChan <- task
+			} else {
+				mutex.Unlock()
+				time.Sleep(1 * time.Second)
+			}
+		}
+	}()
 
 	for {
 		for _, upstream := range cfg.Upstreams {
@@ -56,7 +75,9 @@ func PerformHealthChecks(ctx context.Context, cfg *config.Config) {
 					Server:            &server,
 					HealthCheckConfig: upstream.HealthCheck,
 				}
-				tasks <- task
+				mutex.Lock()
+				taskQueue = append(taskQueue, task)
+				mutex.Unlock()
 			}
 			time.Sleep(upstream.HealthCheck.Interval)
 		}
