@@ -1,9 +1,12 @@
 upstreams:
   - name: "stub-server-1"
     servers:
-      - "http://localhost:8080"
-      - "http://localhost:8081"
-      - "http://localhost:8082"
+      - url: "http://localhost:8080"
+        status: false
+      - url: "http://localhost:8081"
+        status: false
+      - url: "http://localhost:8082"
+        status: false
     healthCheck:
       url: "/health"
       interval: 5s
@@ -14,8 +17,10 @@ upstreams:
 
   - name: "stub-server-2"
     servers:
-      - "http://localhost:8083"
-      - "http://localhost:8084"
+      - url: "http://localhost:8083"
+        status: false
+      - url: "http://localhost:8084"
+        status: false
     healthCheck:
       url: "/health"
       interval: 2s

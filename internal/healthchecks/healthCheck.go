@@ -4,21 +4,15 @@ import (
 	"context"
 	"log"
 	"net/http"
-	"sync"
 	"time"
 
 	"github.com/janithht/GoStreamBalancer/internal/config"
 )
 
 type HealthCheckTask struct {
-	Server            string
+	Server            *config.UpstreamServer
 	HealthCheckConfig config.HealthCheck
 }
-
-var (
-	serverHealthMap = make(map[string]bool)
-	mapMutex        = &sync.Mutex{}
-)
 
 func checkServerHealth(server string, healthCheckConfig config.HealthCheck) bool {
 	client := http.Client{
@@ -32,15 +26,13 @@ func worker(ctx context.Context, id int, tasks <-chan HealthCheckTask) {
 	for {
 		select {
 		case task := <-tasks:
-			healthStatus := checkServerHealth(task.Server, task.HealthCheckConfig)
-			mapMutex.Lock()
-			serverHealthMap[task.Server] = healthStatus
-			mapMutex.Unlock()
+			healthStatus := checkServerHealth(task.Server.Url, task.HealthCheckConfig)
+			task.Server.Status = healthStatus
 
 			if !healthStatus {
-				log.Printf("[Worker %d] Server %s failed health check, removing from pool\n", id, task.Server)
+				log.Printf("[Worker %d] Server %s failed health check, removing from pool\n", id, task.Server.Url)
 			} else {
-				log.Printf("[Worker %d] Server %s passed health check\n", id, task.Server)
+				log.Printf("[Worker %d] Server %s passed health check\n", id, task.Server.Url)
 			}
 		case <-ctx.Done():
 			log.Printf("[Worker %d] Exiting due to context cancellation.\n", id)
@@ -61,7 +53,7 @@ func PerformHealthChecks(ctx context.Context, cfg *config.Config) {
 		for _, upstream := range cfg.Upstreams {
 			for _, server := range upstream.Servers {
 				task := HealthCheckTask{
-					Server:            server,
+					Server:            &server,
 					HealthCheckConfig: upstream.HealthCheck,
 				}
 				tasks <- task
