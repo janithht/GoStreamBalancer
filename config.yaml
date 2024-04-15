@@ -16,10 +16,9 @@ upstreams:
     servers:
       - "http://localhost:8083"
       - "http://localhost:8084"
-      - "http://localhost:8085"
     healthCheck:
       url: "/health"
-      interval: 5s
+      interval: 2s
       timeout: 1s
     rateLimit:
       limit: 100

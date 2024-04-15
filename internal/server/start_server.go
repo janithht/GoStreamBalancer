@@ -15,7 +15,7 @@ var currentServerIndex int = 0
 
 func StartServer(upstreams []config.Upstream) {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		upstreamName := r.Header.Get("X-Upstream-Name")
+		upstreamName := r.Header.Get("Host")
 
 		var selectedUpstream *config.Upstream
 		for _, upstream := range upstreams {

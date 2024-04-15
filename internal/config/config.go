@@ -8,6 +8,13 @@ type Config struct {
 	Upstreams []Upstream `yaml:"upstreams"`
 }
 
+type Upstream struct {
+	Name        string      `yaml:"name"`
+	Servers     []string    `yaml:"servers"`
+	HealthCheck HealthCheck `yaml:"healthCheck"`
+	RateLimit   RateLimit   `yaml:"rateLimit"`
+}
+
 type HealthCheck struct {
 	Url      string        `yaml:"url"`
 	Interval time.Duration `yaml:"interval"`
@@ -17,11 +24,4 @@ type HealthCheck struct {
 type RateLimit struct {
 	Limit    int           `yaml:"limit"`
 	Interval time.Duration `yaml:"interval"`
-}
-
-type Upstream struct {
-	Name        string      `yaml:"name"`
-	Servers     []string    `yaml:"servers"`
-	HealthCheck HealthCheck `yaml:"healthCheck"`
-	RateLimit   RateLimit   `yaml:"rateLimit"`
 }
