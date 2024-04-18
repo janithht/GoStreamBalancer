@@ -9,10 +9,15 @@ type Config struct {
 }
 
 type Upstream struct {
-	Name        string      `yaml:"name"`
-	Servers     []string    `yaml:"servers"`
-	HealthCheck HealthCheck `yaml:"healthCheck"`
-	RateLimit   RateLimit   `yaml:"rateLimit"`
+	Name        string           `yaml:"name"`
+	Servers     []UpstreamServer `yaml:"servers"`
+	HealthCheck HealthCheck      `yaml:"healthCheck"`
+	RateLimit   RateLimit        `yaml:"rateLimit"`
+}
+
+type UpstreamServer struct {
+	Url    string `yaml:"url"`
+	Status bool   `yaml:"status"`
 }
 
 type HealthCheck struct {

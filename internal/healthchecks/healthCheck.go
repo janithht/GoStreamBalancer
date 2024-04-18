@@ -11,13 +11,14 @@ import (
 )
 
 type HealthCheckTask struct {
-	Server            string
+	Server            *config.UpstreamServer
 	HealthCheckConfig config.HealthCheck
 }
 
 var (
-	serverHealthMap = make(map[string]bool)
-	mapMutex        = &sync.Mutex{}
+	mutex     = &sync.Mutex{}
+	taskQueue []HealthCheckTask
+	taskChan  chan HealthCheckTask
 )
 
 func checkServerHealth(server string, healthCheckConfig config.HealthCheck) bool {
@@ -32,15 +33,13 @@ func worker(ctx context.Context, id int, tasks <-chan HealthCheckTask) {
 	for {
 		select {
 		case task := <-tasks:
-			healthStatus := checkServerHealth(task.Server, task.HealthCheckConfig)
-			mapMutex.Lock()
-			serverHealthMap[task.Server] = healthStatus
-			mapMutex.Unlock()
+			healthStatus := checkServerHealth(task.Server.Url, task.HealthCheckConfig)
+			task.Server.Status = healthStatus
 
 			if !healthStatus {
-				log.Printf("[Worker %d] Server %s failed health check, removing from pool\n", id, task.Server)
+				log.Printf("[Worker %d] Server %s failed health check, removing from pool\n", id, task.Server.Url)
 			} else {
-				log.Printf("[Worker %d] Server %s passed health check\n", id, task.Server)
+				log.Printf("[Worker %d] Server %s passed health check\n", id, task.Server.Url)
 			}
 		case <-ctx.Done():
 			log.Printf("[Worker %d] Exiting due to context cancellation.\n", id)
@@ -51,22 +50,47 @@ func worker(ctx context.Context, id int, tasks <-chan HealthCheckTask) {
 
 func PerformHealthChecks(ctx context.Context, cfg *config.Config) {
 	const numWorkers = 10
-	tasks := make(chan HealthCheckTask, 100)
+	taskQueue = make([]HealthCheckTask, 0)
+	taskChan = make(chan HealthCheckTask, 100)
 
 	for i := 0; i < numWorkers; i++ {
-		go worker(ctx, i, tasks)
+		go worker(ctx, i, taskChan)
 	}
 
+	go manageQueue()
+
+	lastScheduled := make(map[string]time.Time)
 	for {
 		for _, upstream := range cfg.Upstreams {
-			for _, server := range upstream.Servers {
-				task := HealthCheckTask{
-					Server:            server,
-					HealthCheckConfig: upstream.HealthCheck,
+			now := time.Now()
+			if lastTime, ok := lastScheduled[upstream.Name]; !ok || now.Sub(lastTime) >= upstream.HealthCheck.Interval {
+				for _, server := range upstream.Servers {
+					task := HealthCheckTask{
+						Server:            &server,
+						HealthCheckConfig: upstream.HealthCheck,
+					}
+					mutex.Lock()
+					taskQueue = append(taskQueue, task)
+					mutex.Unlock()
 				}
-				tasks <- task
+				lastScheduled[upstream.Name] = now
 			}
-			time.Sleep(upstream.HealthCheck.Interval)
+		}
+		time.Sleep(time.Second) // Check every second if it's time to schedule next checks
+	}
+}
+
+func manageQueue() {
+	for {
+		mutex.Lock()
+		if len(taskQueue) > 0 {
+			task := taskQueue[0]
+			taskQueue = taskQueue[1:]
+			mutex.Unlock()
+			taskChan <- task
+		} else {
+			mutex.Unlock()
+			time.Sleep(1 * time.Second)
 		}
 	}
 }

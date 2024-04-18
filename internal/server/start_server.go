@@ -32,7 +32,7 @@ func StartServer(upstreams []config.Upstream) {
 
 		target := selectedUpstream.Servers[currentServerIndex]
 
-		url, err := url.Parse(target)
+		url, err := url.Parse(target.Url)
 		if err != nil {
 			log.Fatalf("Failed to parse target URL: %v", err)
 		} else {
