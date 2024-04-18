@@ -35,7 +35,7 @@ func main() {
 	select {
 	case <-sigs:
 		log.Println("Shutting down servers and health checks...")
-		cancel() // This will propagate cancellation to all goroutines
+		cancel()
 	case <-ctx.Done():
 		log.Println("Shutdown completed")
 	}

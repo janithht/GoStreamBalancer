@@ -28,7 +28,7 @@ func (h *HealthCheckerImpl_1) StartPolling(ctx context.Context) {
 	for _, upstream := range h.upstreams {
 		iterator := config.NewRoundRobinIterator()
 		for _, server := range upstream.Servers {
-			iterator.Add(&server) // Add a pointer to the server
+			iterator.Add(&server)
 		}
 
 		go h.scheduleHealthchecksForUpstream(ctx, upstream, iterator)
