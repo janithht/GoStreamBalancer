@@ -72,7 +72,7 @@ func (h *HealthCheckerImpl_1) performHealthCheck(ctx context.Context, server *co
 	req, err := http.NewRequestWithContext(ctx, "GET", healthCheckURL, nil)
 	if err != nil {
 		log.Printf("Error creating request for health check for server %s: %v", server.Url, err)
-		server.Status = false
+		server.SetStatus(false)
 		return
 	}
 
@@ -80,15 +80,15 @@ func (h *HealthCheckerImpl_1) performHealthCheck(ctx context.Context, server *co
 	if err != nil {
 		log.Printf("Error performing health check for server %s: %v", server.Url, err)
 		fmt.Println()
-		server.Status = false
+		server.SetStatus(false)
 		return
 	} else if res.StatusCode != http.StatusOK {
 		log.Printf("Health check failed for server %s: status code %d", server.Url, res.StatusCode)
 		fmt.Println()
-		server.Status = false
+		server.SetStatus(false)
 	} else {
 		log.Printf("Health check passed for server %s", server.Url)
-		server.Status = true
+		server.SetStatus(true)
 		fmt.Println()
 	}
 }

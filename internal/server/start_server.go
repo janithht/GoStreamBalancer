@@ -34,7 +34,7 @@ func StartServer(upstreams []config.Upstream) {
 		}
 
 		server := iterator.Next().(*config.UpstreamServer)
-		if !server.Status {
+		if !server.GetStatus() {
 			http.Error(w, "No healthy servers available", http.StatusServiceUnavailable)
 			return
 		}
