@@ -25,7 +25,7 @@ func StartServer(upstreams []config.Upstream) {
 	}
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		upstreamName := "stub-server-1"
+		upstreamName := r.Header.Get("X-Upstream")
 		iterator, exists := upstreamMap[upstreamName]
 
 		if !exists {
