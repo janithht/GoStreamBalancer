@@ -1,6 +1,8 @@
 # Use the official Golang image as a builder stage to compile the application
 FROM golang:latest as builder
 
+RUN mkdir /app
+
 # Set the Current Working Directory inside the container
 WORKDIR /app
 
@@ -21,14 +23,12 @@ FROM alpine:latest
 
 LABEL maintainer="Janith Hathnagoda"
 
-WORKDIR /root/
-
 # Copy the Pre-built binary file from the previous stage and the config file
 COPY --from=builder /app/load-balancer-go .
 COPY config.yaml .
 
-# Expose port 9000 to the outside world
-EXPOSE 9000
+# Expose port 8000 to the outside world
+EXPOSE 8000
 
 # Command to run the executable
 CMD ["./load-balancer-go"]
