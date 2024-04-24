@@ -9,7 +9,7 @@ import (
 
 	"github.com/janithht/GoStreamBalancer/internal/config"
 
-	"github.com/janithht/GoStreamBalancer/internal/server"
+	"github.com/janithht/GoStreamBalancer/internal/serverTCP"
 
 	"github.com/janithht/GoStreamBalancer/internal/healthchecks"
 )
@@ -30,7 +30,7 @@ func main() {
 	healthChecker := healthchecks.NewHealthCheckerImpl_1(cfg.Upstreams)
 	go healthChecker.StartPolling(ctx)
 
-	go server.StartServer(cfg.Upstreams)
+	go serverTCP.StartTCPServer(cfg.Upstreams)
 
 	select {
 	case <-sigs:
@@ -39,5 +39,4 @@ func main() {
 	case <-ctx.Done():
 		log.Println("Shutdown completed")
 	}
-
 }

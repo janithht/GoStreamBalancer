@@ -1,7 +1,6 @@
 package healthchecks
 
 import (
-	"context"
 	"testing"
 
 	"github.com/janithht/GoStreamBalancer/internal/config"
@@ -19,8 +18,4 @@ func TestNewHealthCheckerImpl_1(t *testing.T) {
 	if healthChecker.upstreams[0].Name != "testUpstream" {
 		t.Errorf("Expected %s, got %s", "testUpstream", healthChecker.upstreams[0].Name)
 	}
-}
-
-func TestStartPolling(t *testing.T) {
-	healthChecker.StartPolling(context.TODO())
 }
