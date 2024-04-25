@@ -16,16 +16,27 @@ func main() {
 	}
 	defer conn.Close()
 
-	for {
-		// Prompt for the upstream name
-		reader := bufio.NewReader(os.Stdin)
-		fmt.Print("Enter the upstream name: ")
-		upstreamName, err := reader.ReadString('\n')
-		if err != nil {
-			log.Fatalf("Failed to read upstream name: %v", err)
-		}
-
-		fmt.Fprint(conn, upstreamName)
+	reader := bufio.NewReader(os.Stdin)
+	fmt.Print("Enter the upstream name: ")
+	upstreamName, err := reader.ReadString('\n')
+	if err != nil {
+		log.Fatalf("Failed to read upstream name: %v", err)
 	}
 
+	_, err = fmt.Fprint(conn, upstreamName)
+	if err != nil {
+		log.Fatalf("Failed to send upstream name to server: %v", err)
+	}
+
+	// Read the response from the server
+	response, err := bufio.NewReader(conn).ReadString('\n')
+	if err != nil {
+		log.Printf("Error reading response: %v", err)
+		if err.Error() == "EOF" {
+			log.Println("The server closed the connection unexpectedly. Please check server logs.")
+		}
+		return
+	}
+
+	fmt.Printf("Received response: %s", response)
 }
