@@ -58,8 +58,8 @@ func handleTCPConnection(conn net.Conn, upstreamMap map[string]*config.RoundRobi
 	}
 
 	// Get the next available healthy server
-	server, ok := iterator.Next().(*config.UpstreamServer)
-	if !ok || server == nil || !server.GetStatus() {
+	server := iterator.NextHealthy()
+	if server == nil || !server.GetStatus() {
 		log.Printf("No healthy servers available for upstream: %s", upstreamName)
 		conn.Write([]byte("No healthy servers available\n"))
 		return
@@ -87,7 +87,6 @@ func proxyConnection(clientConn net.Conn, server *config.UpstreamServer) {
 	fmt.Println()
 	defer serverConn.Close()
 
-	// Bi-directional copy
 	go io.Copy(serverConn, clientConn)
 	io.Copy(clientConn, serverConn)
 }

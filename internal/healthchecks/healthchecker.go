@@ -47,14 +47,7 @@ func (h *HealthCheckerImpl_1) scheduleHealthchecksForUpstream(ctx context.Contex
 				log.Printf("No valid server found for upstream %s, skipping health check.", upstream.Name)
 				continue
 			}
-
-			// Attempt to type assert the returned value to *config.UpstreamServer
-			server, ok := nextServer.(*config.UpstreamServer)
-			if !ok {
-				log.Println("Type assertion failed for server, skipping health check.")
-				continue
-			}
-			go h.performHealthCheck(ctx, server, upstream.HealthCheck)
+			go h.performHealthCheck(ctx, nextServer, upstream.HealthCheck)
 		case <-ctx.Done():
 			log.Printf("Health check stopped for upstream %s", upstream.Name)
 			return
