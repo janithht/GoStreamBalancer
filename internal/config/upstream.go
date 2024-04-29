@@ -1,6 +1,7 @@
 package config
 
 import (
+	"strings"
 	"sync"
 )
 
@@ -27,4 +28,17 @@ func (server *UpstreamServer) GetStatus() bool {
 	server.mu.Lock()
 	defer server.mu.Unlock()
 	return server.Status
+}
+
+func BuildUpstreamMap(upstreams []Upstream) map[string]*RoundRobinIterator {
+	upstreamMap := make(map[string]*RoundRobinIterator)
+	for i := range upstreams {
+		upstream := &upstreams[i]
+		iterator := NewRoundRobinIterator()
+		for _, server := range upstream.Servers {
+			iterator.Add(server) // Add all servers initially
+		}
+		upstreamMap[strings.ToLower(upstream.Name)] = iterator
+	}
+	return upstreamMap
 }

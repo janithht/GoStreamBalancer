@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -26,10 +27,12 @@ func main() {
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
-	healthChecker := healthchecks.NewHealthCheckerImpl_1(cfg.Upstreams)
+	httpClient := &http.Client{}
+	healthChecker := healthchecks.NewHealthCheckerImpl(cfg.Upstreams, httpClient)
 	go healthChecker.StartPolling(ctx)
 
-	go loadbalancer.StartLoadBalancer(cfg.Upstreams)
+	upstreamMap := config.BuildUpstreamMap(cfg.Upstreams)
+	go loadbalancer.StartLoadBalancer(upstreamMap)
 
 	select {
 	case <-sigs:

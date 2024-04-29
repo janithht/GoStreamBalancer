@@ -2,7 +2,6 @@ package healthchecks
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -10,21 +9,27 @@ import (
 	"github.com/janithht/GoStreamBalancer/internal/config"
 )
 
+type HTTPClient interface {
+	Do(req *http.Request) (*http.Response, error)
+}
+
 type HealthChecker interface {
-	StartPolling(context.Context)
+	StartPolling(ctx context.Context)
 }
 
-type HealthCheckerImpl_1 struct {
-	upstreams []config.Upstream
+type HealthCheckerImpl struct {
+	upstreams  []config.Upstream
+	httpClient HTTPClient
 }
 
-func NewHealthCheckerImpl_1(upstreams []config.Upstream) *HealthCheckerImpl_1 {
-	return &HealthCheckerImpl_1{
-		upstreams: upstreams,
+func NewHealthCheckerImpl(upstreams []config.Upstream, httpClient HTTPClient) *HealthCheckerImpl {
+	return &HealthCheckerImpl{
+		upstreams:  upstreams,
+		httpClient: httpClient,
 	}
 }
 
-func (h *HealthCheckerImpl_1) StartPolling(ctx context.Context) {
+func (h *HealthCheckerImpl) StartPolling(ctx context.Context) {
 	for _, upstream := range h.upstreams {
 		iterator := config.NewRoundRobinIterator()
 		for _, server := range upstream.Servers {
@@ -35,7 +40,7 @@ func (h *HealthCheckerImpl_1) StartPolling(ctx context.Context) {
 	}
 }
 
-func (h *HealthCheckerImpl_1) scheduleHealthchecksForUpstream(ctx context.Context, upstream config.Upstream, iterator *config.RoundRobinIterator) {
+func (h *HealthCheckerImpl) scheduleHealthchecksForUpstream(ctx context.Context, upstream config.Upstream, iterator *config.RoundRobinIterator) {
 	ticker := time.NewTicker(upstream.HealthCheck.Interval)
 	defer ticker.Stop()
 
@@ -55,11 +60,10 @@ func (h *HealthCheckerImpl_1) scheduleHealthchecksForUpstream(ctx context.Contex
 	}
 }
 
-func (h *HealthCheckerImpl_1) performHealthCheck(ctx context.Context, server *config.UpstreamServer, healthCheckConfig config.HealthCheck) {
+func (h *HealthCheckerImpl) performHealthCheck(ctx context.Context, server *config.UpstreamServer, healthCheckConfig config.HealthCheck) {
 	ctx, cancel := context.WithTimeout(ctx, healthCheckConfig.Timeout)
 	defer cancel()
 
-	client := http.Client{}
 	healthCheckURL := server.Url + healthCheckConfig.Url
 
 	req, err := http.NewRequestWithContext(ctx, "GET", healthCheckURL, nil)
@@ -69,19 +73,17 @@ func (h *HealthCheckerImpl_1) performHealthCheck(ctx context.Context, server *co
 		return
 	}
 
-	res, err := client.Do(req)
+	res, err := h.httpClient.Do(req)
 	if err != nil {
 		log.Printf("Error performing health check for server %s: %v", server.Url, err)
-		fmt.Println()
 		server.SetStatus(false)
 		return
-	} else if res.StatusCode != http.StatusOK {
+	}
+	if res.StatusCode != http.StatusOK {
 		log.Printf("Health check failed for server %s: status code %d", server.Url, res.StatusCode)
-		fmt.Println()
 		server.SetStatus(false)
 	} else {
 		log.Printf("Health check passed for server %s", server.Url)
 		server.SetStatus(true)
-		fmt.Println()
 	}
 }

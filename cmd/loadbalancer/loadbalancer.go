@@ -11,17 +11,7 @@ import (
 	"github.com/janithht/GoStreamBalancer/internal/helpers"
 )
 
-func StartLoadBalancer(upstreams []config.Upstream) {
-	upstreamMap := make(map[string]*config.RoundRobinIterator)
-	for i := range upstreams {
-		upstream := &upstreams[i]
-		iterator := config.NewRoundRobinIterator()
-		for _, server := range upstream.Servers {
-			iterator.Add(server) // Add all servers initially
-		}
-		upstreamMap[strings.ToLower(upstream.Name)] = iterator
-	}
-
+func StartLoadBalancer(upstreamMap map[string]*config.RoundRobinIterator) {
 	listener, err := net.Listen("tcp", ":3000")
 	if err != nil {
 		log.Fatalf("Failed to listen on port 3000: %v", err)
