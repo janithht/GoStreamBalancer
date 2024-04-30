@@ -17,15 +17,21 @@ type HealthChecker interface {
 	StartPolling(ctx context.Context)
 }
 
+type HealthCheckListener interface {
+	HealthChecked(server *config.UpstreamServer, time time.Time)
+}
+
 type HealthCheckerImpl struct {
 	upstreams  []config.Upstream
 	httpClient HTTPClient
+	listener   HealthCheckListener
 }
 
-func NewHealthCheckerImpl(upstreams []config.Upstream, httpClient HTTPClient) *HealthCheckerImpl {
+func NewHealthCheckerImpl(upstreams []config.Upstream, httpClient HTTPClient, listener HealthCheckListener) *HealthCheckerImpl {
 	return &HealthCheckerImpl{
 		upstreams:  upstreams,
 		httpClient: httpClient,
+		listener:   listener,
 	}
 }
 
@@ -73,9 +79,12 @@ func (h *HealthCheckerImpl) performHealthCheck(ctx context.Context, server *conf
 		return
 	}
 
+	if h.listener != nil {
+		h.listener.HealthChecked(server, time.Now())
+	}
+
 	res, err := h.httpClient.Do(req)
 	if err != nil {
-		log.Printf("Error performing health check for server %s: %v", server.Url, err)
 		server.SetStatus(false)
 		return
 	}

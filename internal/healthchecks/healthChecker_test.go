@@ -19,11 +19,26 @@ func (m *mockHTTPClient) Do(req *http.Request) (*http.Response, error) {
 	}, nil
 }
 
+type MockHealthCheckListener struct {
+	Times []time.Time
+}
+
+func (m *MockHealthCheckListener) HealthChecked(server *config.UpstreamServer, t time.Time) {
+	m.Times = append(m.Times, t)
+}
+
+type IntervalListener struct {
+	times []time.Time
+}
+
+func (il *IntervalListener) HealthChecked(server *config.UpstreamServer, t time.Time) {
+	il.times = append(il.times, t)
+}
+
 func TestHealthChecker(t *testing.T) {
-	// Mock HTTP client
 	httpClient := &mockHTTPClient{}
-	healthCheckCount := 0
-	// Mock upstreams
+	listener := &MockHealthCheckListener{}
+
 	upstream := config.Upstream{
 		Name: "test",
 		HealthCheck: config.HealthCheck{
@@ -37,22 +52,17 @@ func TestHealthChecker(t *testing.T) {
 	}
 	upstreams := []config.Upstream{upstream}
 
-	// Create a new HealthChecker
-	healthChecker := healthchecks.NewHealthCheckerImpl(upstreams, httpClient)
+	healthChecker := healthchecks.NewHealthCheckerImpl(upstreams, httpClient, listener)
 
-	// Start the polling
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-
 	go healthChecker.StartPolling(ctx)
 
-	// Wait for a few seconds to allow the health check to be performed
-	time.Sleep(3 * time.Second)
+	// Extended sleep time
+	time.Sleep(4 * time.Second) // Extend to ensure enough time for all checks
 
-	expectedChecks := 3 // 3 seconds have passed, so 3 checks should have been performed
-
-	// Check if the number of health checks matches the expected count
-	if healthCheckCount != expectedChecks {
-		t.Errorf("Expected %d health checks, got %d", expectedChecks, healthCheckCount)
+	expectedChecks := 3
+	if len(listener.Times) != expectedChecks {
+		t.Errorf("Expected %d health checks, got %d", expectedChecks, len(listener.Times))
 	}
 }
