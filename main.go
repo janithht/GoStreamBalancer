@@ -7,12 +7,12 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"github.com/janithht/GoStreamBalancer/internal/config"
 
 	"github.com/janithht/GoStreamBalancer/cmd/loadbalancer"
 	"github.com/janithht/GoStreamBalancer/internal/healthchecks"
+	"github.com/janithht/GoStreamBalancer/internal/helpers"
 )
 
 func main() {
@@ -29,8 +29,8 @@ func main() {
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
 	httpClient := &http.Client{}
-	listener := &SimpleHealthCheckListener{}                                                // Create an instance of your listener
-	healthChecker := healthchecks.NewHealthCheckerImpl(cfg.Upstreams, httpClient, listener) // Pass it here
+	listener := &helpers.SimpleHealthCheckListener{}
+	healthChecker := healthchecks.NewHealthCheckerImpl(cfg.Upstreams, httpClient, listener)
 	go healthChecker.StartPolling(ctx)
 
 	upstreamMap := config.BuildUpstreamMap(cfg.Upstreams)
@@ -43,10 +43,4 @@ func main() {
 	case <-ctx.Done():
 		log.Println("Shutdown completed")
 	}
-}
-
-type SimpleHealthCheckListener struct{}
-
-func (l *SimpleHealthCheckListener) HealthChecked(server *config.UpstreamServer, time time.Time) {
-	log.Printf("Health check performed for server %s at %s: status %t", server.Url, time.Format("2006-01-02T15:04:05Z07:00"), server.Status)
 }
