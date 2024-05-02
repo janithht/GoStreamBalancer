@@ -1,4 +1,4 @@
-package healthchecks_test
+package healthchecks
 
 import (
 	"context"
@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/janithht/GoStreamBalancer/internal/config"
-	"github.com/janithht/GoStreamBalancer/internal/healthchecks"
 )
 
 type mockHTTPClient struct{}
@@ -52,7 +51,7 @@ func TestHealthChecker(t *testing.T) {
 	}
 	upstreams := []config.Upstream{upstream}
 
-	healthChecker := healthchecks.NewHealthCheckerImpl(upstreams, httpClient, listener)
+	healthChecker := NewHealthCheckerImpl(upstreams, httpClient, listener)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
