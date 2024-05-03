@@ -23,7 +23,7 @@ func init() {
 	cancelFunc = func() {}
 }
 
-func StartServer(upstreamMap map[string]*config.RoundRobinIterator, cfg *config.Config, httpClient *http.Client, listener *helpers.SimpleHealthCheckListener) {
+func StartServer(upstreamMap map[string]*config.LeastConnectionsIterator, cfg *config.Config, httpClient *http.Client, listener *helpers.SimpleHealthCheckListener) {
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		upstreamName := r.Header.Get("X-Upstream")
@@ -33,6 +33,14 @@ func StartServer(upstreamMap map[string]*config.RoundRobinIterator, cfg *config.
 			return
 		}
 		server := iterator.NextHealthy()
+		if server == nil {
+			http.Error(w, "No available upstream servers", http.StatusServiceUnavailable)
+			return
+		}
+
+		server.IncrementConnections()
+		defer server.DecrementConnections()
+
 		url, err := url.Parse(server.Url)
 		if err != nil {
 			log.Fatalf("Failed to parse target URL: %v", err)

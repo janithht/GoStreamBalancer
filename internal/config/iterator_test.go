@@ -5,10 +5,10 @@ import (
 	"testing"
 )
 
-var iterator RoundRobinIterator
+var iterator LeastConnectionsIterator
 
 func TestNewRoundRobinIterator(t *testing.T) {
-	iterator := NewRoundRobinIterator()
+	iterator := NewLeastConnectionsIterator()
 	if reflect.ValueOf(iterator.items).Kind() != reflect.Slice {
 		t.Errorf("Expected item list to be initialized, got nil")
 	}

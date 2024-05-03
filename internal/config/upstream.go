@@ -13,9 +13,10 @@ type Upstream struct {
 }
 
 type UpstreamServer struct {
-	Url    string `yaml:"url"`
-	Status bool   `yaml:"status"`
-	mu     sync.Mutex
+	Url               string `yaml:"url"`
+	Status            bool   `yaml:"status"`
+	ActiveConnections int
+	mu                sync.Mutex
 }
 
 func (server *UpstreamServer) SetStatus(status bool) {
@@ -30,11 +31,25 @@ func (server *UpstreamServer) GetStatus() bool {
 	return server.Status
 }
 
-func BuildUpstreamMap(upstreams []Upstream) map[string]*RoundRobinIterator {
-	upstreamMap := make(map[string]*RoundRobinIterator)
+func (server *UpstreamServer) IncrementConnections() {
+	server.mu.Lock()
+	server.ActiveConnections++
+	server.mu.Unlock()
+}
+
+func (server *UpstreamServer) DecrementConnections() {
+	server.mu.Lock()
+	if server.ActiveConnections > 0 {
+		server.ActiveConnections--
+	}
+	server.mu.Unlock()
+}
+
+func BuildUpstreamMap(upstreams []Upstream) map[string]*LeastConnectionsIterator {
+	upstreamMap := make(map[string]*LeastConnectionsIterator)
 	for i := range upstreams {
 		upstream := &upstreams[i]
-		iterator := NewRoundRobinIterator()
+		iterator := NewLeastConnectionsIterator()
 		for _, server := range upstream.Servers {
 			iterator.Add(server) // Add all servers initially
 		}

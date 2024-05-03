@@ -10,7 +10,7 @@ import (
 	"github.com/janithht/GoStreamBalancer/internal/helpers"
 )
 
-func StartLoadBalancers(upstreamMap map[string]*config.RoundRobinIterator, portMap map[int]string) {
+func StartLoadBalancers(upstreamMap map[string]*config.LeastConnectionsIterator, portMap map[int]string) {
 	for port, upstreamName := range portMap {
 		go func(port int, upstreamName string) {
 			listener, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
@@ -34,7 +34,7 @@ func StartLoadBalancers(upstreamMap map[string]*config.RoundRobinIterator, portM
 	}
 }
 
-func handleConnection(clientConn net.Conn, upstreamName string, upstreamMap map[string]*config.RoundRobinIterator) {
+func handleConnection(clientConn net.Conn, upstreamName string, upstreamMap map[string]*config.LeastConnectionsIterator) {
 	log.Printf("Handling connection for upstream: %s", upstreamName)
 	defer clientConn.Close()
 

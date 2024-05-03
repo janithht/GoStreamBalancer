@@ -7,46 +7,54 @@ type Iterator interface {
 	Next() (item any)
 }
 
-type RoundRobinIterator struct {
+type LeastConnectionsIterator struct {
 	mu    sync.Mutex
 	items []*UpstreamServer
 }
 
-func NewRoundRobinIterator() *RoundRobinIterator {
-	return &RoundRobinIterator{}
+func NewLeastConnectionsIterator() *LeastConnectionsIterator {
+	return &LeastConnectionsIterator{}
 }
 
-func (r *RoundRobinIterator) Add(server *UpstreamServer) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	r.items = append(r.items, server)
+func (l *LeastConnectionsIterator) Add(server *UpstreamServer) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.items = append(l.items, server)
 }
 
-func (r *RoundRobinIterator) Next() *UpstreamServer {
-	r.mu.Lock()
-	defer r.mu.Unlock()
+func (l *LeastConnectionsIterator) Next() *UpstreamServer {
+	l.mu.Lock()
+	defer l.mu.Unlock()
 
-	if len(r.items) == 0 {
+	if len(l.items) == 0 {
 		return nil
 	}
 
-	server := r.items[0]
-	r.items = append(r.items[1:], server)
+	server := l.items[0]
+	l.items = append(l.items[1:], server)
 	return server
 }
 
-func (r *RoundRobinIterator) NextHealthy() *UpstreamServer {
-	r.mu.Lock()
-	defer r.mu.Unlock()
+func (l *LeastConnectionsIterator) NextHealthy() *UpstreamServer {
+	l.mu.Lock()
+	defer l.mu.Unlock()
 
-	originalCount := len(r.items)
-	for count := 0; count < originalCount; count++ {
-		server := r.items[0]
-		r.items = append(r.items[1:], server)
+	if len(l.items) == 0 {
+		return nil
+	}
 
-		if server.GetStatus() {
-			return server
+	var leastConnServer *UpstreamServer
+	minConnections := int(^uint(0) >> 1)
+
+	for _, server := range l.items {
+		if server.GetStatus() && server.ActiveConnections < minConnections {
+			minConnections = server.ActiveConnections
+			leastConnServer = server
 		}
 	}
-	return nil
+
+	if leastConnServer != nil {
+		leastConnServer.IncrementConnections()
+	}
+	return leastConnServer
 }
