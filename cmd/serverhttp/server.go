@@ -1,6 +1,7 @@
 package serverhttp
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
@@ -11,6 +12,16 @@ import (
 	"github.com/janithht/GoStreamBalancer/internal/healthchecks"
 	"github.com/janithht/GoStreamBalancer/internal/helpers"
 )
+
+var (
+	checker    *healthchecks.HealthCheckerImpl
+	checkerCtx context.Context
+	cancelFunc context.CancelFunc
+)
+
+func init() {
+	cancelFunc = func() {}
+}
 
 func StartServer(upstreamMap map[string]*config.RoundRobinIterator, cfg *config.Config, httpClient *http.Client, listener *helpers.SimpleHealthCheckListener) {
 
@@ -32,9 +43,12 @@ func StartServer(upstreamMap map[string]*config.RoundRobinIterator, cfg *config.
 	})
 
 	http.HandleFunc("/trigger-health-check", func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
-		checker := healthchecks.NewHealthCheckerImpl(cfg.Upstreams, httpClient, listener)
-		checker.StartPolling(ctx)
+		if checker == nil || checkerCtx.Err() != nil {
+			cancelFunc()
+			checkerCtx, cancelFunc = context.WithCancel(context.Background())
+			checker = healthchecks.NewHealthCheckerImpl(cfg.Upstreams, httpClient, listener)
+			checker.StartPolling(checkerCtx)
+		}
 	})
 
 	fmt.Println("Load Balancer started on port 3000")
