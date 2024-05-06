@@ -3,6 +3,8 @@ package config
 import (
 	"strings"
 	"sync"
+
+	"github.com/janithht/GoStreamBalancer/internal/ratelimits"
 )
 
 type Upstream struct {
@@ -10,6 +12,7 @@ type Upstream struct {
 	Servers     []*UpstreamServer `yaml:"servers"`
 	HealthCheck HealthCheck       `yaml:"healthCheck"`
 	RateLimit   RateLimit         `yaml:"rateLimit"`
+	Limiter     *ratelimits.RateLimiter
 }
 
 type UpstreamServer struct {
@@ -45,15 +48,19 @@ func (server *UpstreamServer) DecrementConnections() {
 	server.mu.Unlock()
 }
 
-func BuildUpstreamMap(upstreams []Upstream) map[string]*LeastConnectionsIterator {
+func BuildUpstreamConfigs(upstreams []Upstream) (map[string]*LeastConnectionsIterator, map[string]*Upstream) {
 	upstreamMap := make(map[string]*LeastConnectionsIterator)
+	upstreamConfigMap := make(map[string]*Upstream)
+
 	for i := range upstreams {
 		upstream := &upstreams[i]
 		iterator := NewLeastConnectionsIterator()
 		for _, server := range upstream.Servers {
-			iterator.Add(server) // Add all servers initially
+			iterator.Add(server)
 		}
+		upstream.Limiter = ratelimits.NewRateLimiter(upstream.RateLimit.Limit, upstream.RateLimit.Interval)
 		upstreamMap[strings.ToLower(upstream.Name)] = iterator
+		upstreamConfigMap[strings.ToLower(upstream.Name)] = upstream
 	}
-	return upstreamMap
+	return upstreamMap, upstreamConfigMap
 }

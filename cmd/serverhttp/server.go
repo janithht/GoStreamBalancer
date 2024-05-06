@@ -23,15 +23,22 @@ func init() {
 	cancelFunc = func() {}
 }
 
-func StartServer(upstreamMap map[string]*config.LeastConnectionsIterator, cfg *config.Config, httpClient *http.Client, listener *helpers.SimpleHealthCheckListener) {
+func StartServer(upstreamMap map[string]*config.LeastConnectionsIterator, upstreamConfigMap map[string]*config.Upstream, cfg *config.Config, httpClient *http.Client, listener *helpers.SimpleHealthCheckListener) {
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		upstreamName := r.Header.Get("X-Upstream")
 		iterator, exists := upstreamMap[upstreamName]
-		if !exists {
+		upstreamConfig, configExists := upstreamConfigMap[upstreamName]
+
+		if !exists || !configExists {
 			http.Error(w, "Upstream not found or has no servers", http.StatusNotFound)
 			return
 		}
+		if !upstreamConfig.Limiter.Allow() {
+			http.Error(w, "Rate limit exceeded", http.StatusTooManyRequests)
+			return
+		}
+
 		server := iterator.NextHealthy()
 		if server == nil {
 			http.Error(w, "No available upstream servers", http.StatusServiceUnavailable)

@@ -43,8 +43,8 @@ func main() {
 		upstreamMap := config.BuildUpstreamMap(cfg.Upstreams)
 		servertcp.StartLoadBalancers(upstreamMap, portMap)
 	*/
-	upstreamMap := config.BuildUpstreamMap(cfg.Upstreams)
-	go serverhttp.StartServer(upstreamMap, cfg, httpClient, listener)
+	upstreamMap, upstreamConfigMap := config.BuildUpstreamConfigs(cfg.Upstreams)
+	go serverhttp.StartServer(upstreamMap, upstreamConfigMap, cfg, httpClient, listener)
 
 	select {
 	case <-sigs:
