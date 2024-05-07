@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"net/http/httputil"
+	_ "net/http/pprof"
 	"net/url"
 
 	"github.com/janithht/GoStreamBalancer/internal/config"
@@ -12,8 +13,9 @@ import (
 )
 
 func StartServer(upstreamMap map[string]*config.LeastConnectionsIterator, upstreamConfigMap map[string]*config.Upstream, cfg *config.Config, httpClient *http.Client, listener *helpers.SimpleHealthCheckListener) {
+	mux := http.NewServeMux()
 
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		upstreamName := r.Header.Get("X-Upstream")
 		iterator, exists := upstreamMap[upstreamName]
 		upstreamConfig, configExists := upstreamConfigMap[upstreamName]
@@ -46,8 +48,14 @@ func StartServer(upstreamMap map[string]*config.LeastConnectionsIterator, upstre
 		proxy.ServeHTTP(w, r)
 	})
 
+	mux.HandleFunc("/debug/pprof/", http.DefaultServeMux.ServeHTTP)
+	mux.HandleFunc("/debug/pprof/cmdline", http.DefaultServeMux.ServeHTTP)
+	mux.HandleFunc("/debug/pprof/profile", http.DefaultServeMux.ServeHTTP)
+	mux.HandleFunc("/debug/pprof/symbol", http.DefaultServeMux.ServeHTTP)
+	mux.HandleFunc("/debug/pprof/trace", http.DefaultServeMux.ServeHTTP)
+
 	fmt.Println("Load Balancer started on port 3000")
-	if err := http.ListenAndServe(":3000", nil); err != nil {
+	if err := http.ListenAndServe(":3000", mux); err != nil {
 		log.Fatalf("Failed to start server: %v", err)
 	}
 }
