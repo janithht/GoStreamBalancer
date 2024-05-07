@@ -11,7 +11,3 @@ class ReverseProxyUser(HttpUser):
         print(f"Sending request to upstream: {selected_upstream}")
         headers = {'X-Upstream': selected_upstream}
         self.client.get("/", headers=headers)
-
-    @task
-    def trigger_health_checks(self):
-        self.client.get("/trigger-health-check")

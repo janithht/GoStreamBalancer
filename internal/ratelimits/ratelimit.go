@@ -29,7 +29,6 @@ func (rl *RateLimiter) Allow() bool {
 	now := time.Now()
 	elapsed := now.Sub(rl.lastCheck)
 
-	// Calculate how many tokens to regenerate
 	regenTokens := int(elapsed / rl.rate)
 	if regenTokens > 0 {
 		rl.tokens = min(rl.capacity, rl.tokens+regenTokens)

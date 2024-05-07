@@ -21,10 +21,32 @@ type HealthCheckListener interface {
 	HealthChecked(server *config.UpstreamServer, time time.Time)
 }
 
+type Ticker interface {
+	Stop()
+	C() <-chan time.Time
+}
+
+type RealTicker struct {
+	ticker *time.Ticker
+}
+
+func (r *RealTicker) Stop() {
+	r.ticker.Stop()
+}
+
+func (r *RealTicker) C() <-chan time.Time {
+	return r.ticker.C
+}
+
+func NewRealTicker(d time.Duration) Ticker {
+	return &RealTicker{ticker: time.NewTicker(d)}
+}
+
 type HealthCheckerImpl struct {
 	upstreams  []config.Upstream
 	httpClient HTTPClient
 	listener   HealthCheckListener
+	newTicker  func(d time.Duration) Ticker
 }
 
 func NewHealthCheckerImpl(upstreams []config.Upstream, httpClient HTTPClient, listener HealthCheckListener) *HealthCheckerImpl {
@@ -32,6 +54,7 @@ func NewHealthCheckerImpl(upstreams []config.Upstream, httpClient HTTPClient, li
 		upstreams:  upstreams,
 		httpClient: httpClient,
 		listener:   listener,
+		newTicker:  NewRealTicker, // Real ticker as the default
 	}
 }
 
@@ -47,20 +70,17 @@ func (h *HealthCheckerImpl) StartPolling(ctx context.Context) {
 }
 
 func (h *HealthCheckerImpl) scheduleHealthchecksForUpstream(ctx context.Context, upstream config.Upstream, iterator *config.LeastConnectionsIterator) {
-	ticker := time.NewTicker(upstream.HealthCheck.Interval)
+	ticker := h.newTicker(upstream.HealthCheck.Interval)
 	defer ticker.Stop()
 
 	for {
 		select {
-		case <-ticker.C:
+		case <-ticker.C():
 			nextServer := iterator.Next()
-			if nextServer == nil {
-				log.Printf("No valid server found for upstream %s, skipping health check.", upstream.Name)
-				continue
+			if nextServer != nil {
+				go h.performHealthCheck(ctx, nextServer, upstream.HealthCheck)
 			}
-			go h.performHealthCheck(ctx, nextServer, upstream.HealthCheck)
 		case <-ctx.Done():
-			log.Printf("Health check stopped for upstream %s", upstream.Name)
 			return
 		}
 	}

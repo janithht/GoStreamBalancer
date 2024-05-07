@@ -7,61 +7,121 @@ import (
 	"time"
 
 	"github.com/janithht/GoStreamBalancer/internal/config"
+	"github.com/stretchr/testify/assert"
 )
 
-type mockHTTPClient struct{}
-
-func (m *mockHTTPClient) Do(req *http.Request) (*http.Response, error) {
-	return &http.Response{
-		StatusCode: http.StatusOK,
-		Body:       nil,
-	}, nil
+type MockHTTPClient struct {
+	response *http.Response
+	err      error
 }
 
-type MockHealthCheckListener struct {
-	Times []time.Time
+func (m *MockHTTPClient) Do(req *http.Request) (*http.Response, error) {
+	return m.response, m.err
 }
 
-func (m *MockHealthCheckListener) HealthChecked(server *config.UpstreamServer, t time.Time) {
-	m.Times = append(m.Times, t)
+type MockListener struct {
+	checkedServers map[string][]time.Time
 }
 
-type IntervalListener struct {
-	times []time.Time
+func (m *MockListener) HealthChecked(server *config.UpstreamServer, checkedAt time.Time) {
+	m.checkedServers[server.Url] = append(m.checkedServers[server.Url], checkedAt)
 }
 
-func (il *IntervalListener) HealthChecked(server *config.UpstreamServer, t time.Time) {
-	il.times = append(il.times, t)
+type TestSetup struct {
+	url           string
+	healthChecker *HealthCheckerImpl
+	MockListener  *MockListener
+	upstreams     []config.Upstream
+	ctx           context.Context
+	cancel        context.CancelFunc
 }
 
-func TestHealthChecker(t *testing.T) {
-	httpClient := &mockHTTPClient{}
-	listener := &MockHealthCheckListener{}
+func setupTest() TestSetup {
+	url := "http://localhost:9090"
+	mockHTTPClient := &MockHTTPClient{
+		response: &http.Response{StatusCode: http.StatusOK},
+		err:      nil,
+	}
+	mockListener := &MockListener{
+		checkedServers: make(map[string][]time.Time),
+	}
 
 	upstream := config.Upstream{
-		Name: "test",
-		HealthCheck: config.HealthCheck{
-			Interval: time.Second,
-			Timeout:  time.Second,
-			Url:      "/health",
-		},
+		Name: "test-upstream",
 		Servers: []*config.UpstreamServer{
-			{Url: "http://localhost:8081"},
+			{Url: url},
+		},
+		HealthCheck: config.HealthCheck{Interval: 3 * time.Second, Url: "/health", Timeout: 2 * time.Second},
+	}
+
+	healthChecker := &HealthCheckerImpl{
+		upstreams:  []config.Upstream{upstream},
+		httpClient: mockHTTPClient,
+		listener:   mockListener,
+		newTicker: func(d time.Duration) Ticker {
+			return &RealTicker{ticker: time.NewTicker(d)}
 		},
 	}
-	upstreams := []config.Upstream{upstream}
-
-	healthChecker := NewHealthCheckerImpl(upstreams, httpClient, listener)
 
 	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	go healthChecker.StartPolling(ctx)
 
-	// Extended sleep time
-	time.Sleep(4 * time.Second) // Extend to ensure enough time for all checks
+	return TestSetup{
+		url:           url,
+		healthChecker: healthChecker,
+		MockListener:  mockListener,
+		upstreams:     []config.Upstream{upstream},
+		ctx:           ctx,
+		cancel:        cancel,
+	}
+}
 
-	expectedChecks := 3
-	if len(listener.Times) != expectedChecks {
-		t.Errorf("Expected %d health checks, got %d", expectedChecks, len(listener.Times))
+func TestScheduleHealthChecks(t *testing.T) {
+	setup := setupTest()
+	defer setup.cancel()
+
+	go setup.healthChecker.StartPolling(setup.ctx)
+
+	time.Sleep(10 * time.Second)
+
+	assert.Equal(t, 3, len(setup.MockListener.checkedServers[setup.url]), "Server should have been checked three times")
+
+	if len(setup.MockListener.checkedServers[setup.url]) > 1 {
+		for i := 1; i < len(setup.MockListener.checkedServers[setup.url]); i++ {
+			elapsed := setup.MockListener.checkedServers[setup.url][i].Sub(setup.MockListener.checkedServers[setup.url][i-1])
+			t.Logf("Time elapsed between health check %d and %d: %v", i, i+1, elapsed)
+		}
+	}
+}
+
+func BenchmarkStartPolling(b *testing.B) {
+	setup := setupTest()
+	defer setup.cancel()
+
+	for i := 0; i < b.N; i++ {
+		setup.healthChecker.StartPolling(setup.ctx)
+	}
+}
+
+func BenchmarkScheduleHealthchecksForUpstream(b *testing.B) {
+	setup := setupTest()
+	defer setup.cancel()
+
+	upstream := setup.healthChecker.upstreams[0]
+	iterator := config.NewLeastConnectionsIterator()
+	for _, server := range upstream.Servers {
+		iterator.Add(server)
+	}
+
+	for i := 0; i < b.N; i++ {
+		setup.healthChecker.scheduleHealthchecksForUpstream(setup.ctx, upstream, iterator)
+	}
+}
+
+func BenchmarkPerformHealthCheck(b *testing.B) {
+	setup := setupTest()
+	defer setup.cancel()
+
+	for i := 0; i < b.N; i++ {
+		setup.healthChecker.performHealthCheck(setup.ctx, setup.upstreams[0].Servers[0], setup.upstreams[0].HealthCheck)
 	}
 }
