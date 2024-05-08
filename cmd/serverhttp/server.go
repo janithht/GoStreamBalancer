@@ -18,17 +18,17 @@ func StartServer(upstreamMap map[string]*config.LeastConnectionsIterator, upstre
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		upstreamName := r.Header.Get("X-Upstream")
 		iterator, exists := upstreamMap[upstreamName]
-		upstreamConfig, configExists := upstreamConfigMap[upstreamName]
+		_, configExists := upstreamConfigMap[upstreamName]
 
 		if !exists || !configExists {
 			http.Error(w, "Upstream not found or has no servers", http.StatusNotFound)
 			return
 		}
-		if !upstreamConfig.Limiter.Allow() {
+		/*if !upstreamConfig.Limiter.Allow() {
 			log.Printf("Rate limit exceeded for %s", upstreamName)
 			http.Error(w, "Rate limit exceeded", http.StatusTooManyRequests)
 			return
-		}
+		}*/
 
 		server := iterator.NextHealthy()
 		if server == nil {

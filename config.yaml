@@ -12,7 +12,7 @@ upstreams:
       interval: 5s
       timeout: 1s
     rateLimit:
-      limit: 100
+      limit: 0
       interval: 1m
 
   - name: "stub-server-2"
@@ -26,7 +26,7 @@ upstreams:
       interval: 2s
       timeout: 1s
     rateLimit:
-      limit: 100
+      limit: 0
       interval: 1m
 
   
