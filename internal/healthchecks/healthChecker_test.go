@@ -107,7 +107,7 @@ func BenchmarkScheduleHealthchecksForUpstream(b *testing.B) {
 	defer setup.cancel()
 
 	upstream := setup.healthChecker.upstreams[0]
-	iterator := config.NewLeastConnectionsIterator()
+	iterator := config.NewIterator()
 	for _, server := range upstream.Servers {
 		iterator.Add(server)
 	}

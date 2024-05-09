@@ -1,52 +1,55 @@
 package config
 
-import "sync"
+import (
+	"hash/fnv"
+	"sync"
+)
 
 type Iterator interface {
-	Add(item any)
-	Next() (item any)
+	Add(server *UpstreamServer)
+	Next() *UpstreamServer
 }
 
-type LeastConnectionsIterator struct {
-	mu    sync.Mutex
-	items []*UpstreamServer
+type IteratorImpl struct {
+	mu      sync.Mutex
+	servers []*UpstreamServer
 }
 
-func NewLeastConnectionsIterator() *LeastConnectionsIterator {
-	return &LeastConnectionsIterator{}
+func NewIterator() *IteratorImpl {
+	return &IteratorImpl{}
 }
 
-func (l *LeastConnectionsIterator) Add(server *UpstreamServer) {
+func (l *IteratorImpl) Add(server *UpstreamServer) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	l.items = append(l.items, server)
+	l.servers = append(l.servers, server)
 }
 
-func (l *LeastConnectionsIterator) Next() *UpstreamServer {
+func (l *IteratorImpl) Next() *UpstreamServer {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
-	if len(l.items) == 0 {
+	if len(l.servers) == 0 {
 		return nil
 	}
 
-	server := l.items[0]
-	l.items = append(l.items[1:], server)
+	server := l.servers[0]
+	l.servers = append(l.servers[1:], server)
 	return server
 }
 
-func (l *LeastConnectionsIterator) NextHealthy() *UpstreamServer {
+func (l *IteratorImpl) NextHealthy() *UpstreamServer {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
-	if len(l.items) == 0 {
+	if len(l.servers) == 0 {
 		return nil
 	}
 
 	var leastConnServer *UpstreamServer
 	minConnections := int(^uint(0) >> 1)
 
-	for _, server := range l.items {
+	for _, server := range l.servers {
 		if server.GetStatus() && server.ActiveConnections < minConnections {
 			minConnections = server.ActiveConnections
 			leastConnServer = server
@@ -57,4 +60,20 @@ func (l *LeastConnectionsIterator) NextHealthy() *UpstreamServer {
 		leastConnServer.IncrementConnections()
 	}
 	return leastConnServer
+}
+
+func (iterator *IteratorImpl) MatchServer(clientIP string) *UpstreamServer {
+	iterator.mu.Lock()
+	defer iterator.mu.Unlock()
+
+	if len(iterator.servers) == 0 {
+		return nil
+	}
+
+	// Calculate the hash of the client's IP address
+	hasher := fnv.New32()
+	hasher.Write([]byte(clientIP))
+	index := int(hasher.Sum32()) % len(iterator.servers)
+
+	return iterator.servers[index]
 }

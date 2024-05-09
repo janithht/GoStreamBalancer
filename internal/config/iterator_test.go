@@ -5,11 +5,11 @@ import (
 	"testing"
 )
 
-var iterator LeastConnectionsIterator
+var iterator IteratorImpl
 
 func TestNewRoundRobinIterator(t *testing.T) {
-	iterator := NewLeastConnectionsIterator()
-	if reflect.ValueOf(iterator.items).Kind() != reflect.Slice {
+	iterator := NewIterator()
+	if reflect.ValueOf(iterator.servers).Kind() != reflect.Slice {
 		t.Errorf("Expected item list to be initialized, got nil")
 	}
 }
@@ -20,8 +20,8 @@ func TestAdd(t *testing.T) {
 		Status: true,
 	}
 	iterator.Add(server)
-	if iterator.items == nil {
-		t.Errorf("Expected 1 item in the iterator, got %d", len(iterator.items))
+	if iterator.servers == nil {
+		t.Errorf("Expected 1 item in the iterator, got %d", len(iterator.servers))
 	}
 }
 

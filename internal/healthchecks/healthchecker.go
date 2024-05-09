@@ -60,7 +60,7 @@ func NewHealthCheckerImpl(upstreams []config.Upstream, httpClient HTTPClient, li
 
 func (h *HealthCheckerImpl) StartPolling(ctx context.Context) {
 	for _, upstream := range h.upstreams {
-		iterator := config.NewLeastConnectionsIterator()
+		iterator := config.NewIterator()
 		for _, server := range upstream.Servers {
 			iterator.Add(server)
 		}
@@ -69,7 +69,7 @@ func (h *HealthCheckerImpl) StartPolling(ctx context.Context) {
 	}
 }
 
-func (h *HealthCheckerImpl) scheduleHealthchecksForUpstream(ctx context.Context, upstream config.Upstream, iterator *config.LeastConnectionsIterator) {
+func (h *HealthCheckerImpl) scheduleHealthchecksForUpstream(ctx context.Context, upstream config.Upstream, iterator *config.IteratorImpl) {
 	ticker := h.newTicker(upstream.HealthCheck.Interval)
 	defer ticker.Stop()
 

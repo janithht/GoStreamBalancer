@@ -48,13 +48,13 @@ func (server *UpstreamServer) DecrementConnections() {
 	server.mu.Unlock()
 }
 
-func BuildUpstreamConfigs(upstreams []Upstream) (map[string]*LeastConnectionsIterator, map[string]*Upstream) {
-	upstreamMap := make(map[string]*LeastConnectionsIterator)
+func BuildUpstreamConfigs(upstreams []Upstream) (map[string]*IteratorImpl, map[string]*Upstream) {
+	upstreamMap := make(map[string]*IteratorImpl)
 	upstreamConfigMap := make(map[string]*Upstream)
 
 	for i := range upstreams {
 		upstream := &upstreams[i]
-		iterator := NewLeastConnectionsIterator()
+		iterator := NewIterator()
 		for _, server := range upstream.Servers {
 			iterator.Add(server)
 		}
