@@ -18,4 +18,5 @@ type HealthCheck struct {
 type RateLimit struct {
 	Limit    int           `yaml:"limit"`
 	Interval time.Duration `yaml:"interval"`
+	Enabled  bool          `yaml:"enabled"`
 }

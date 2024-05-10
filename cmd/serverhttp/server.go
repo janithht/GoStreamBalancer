@@ -26,11 +26,11 @@ func StartServer(upstreamMap map[string]*config.IteratorImpl, upstreamConfigMap 
 			return
 		}
 
-		/*if upstreamConfig.Limiter != nil && !upstreamConfig.Limiter.Allow() {
+		if upstreamConfig.Limiter != nil && !upstreamConfig.Limiter.Allow() {
 			log.Printf("Rate limit exceeded for %s", upstreamName)
 			http.Error(w, "Rate limit exceeded", http.StatusTooManyRequests)
 			return
-		}*/
+		}
 
 		// Determine which load-balancing strategy to use
 		var server *config.UpstreamServer
