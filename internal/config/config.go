@@ -12,6 +12,7 @@ type HealthCheck struct {
 	Url      string        `yaml:"url"`
 	Interval time.Duration `yaml:"interval"`
 	Timeout  time.Duration `yaml:"timeout"`
+	Enabled  bool          `yaml:"enabled"`
 }
 
 type RateLimit struct {

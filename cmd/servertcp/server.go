@@ -45,7 +45,7 @@ func handleConnection(clientConn net.Conn, upstreamName string, upstreamMap map[
 	}
 	log.Printf("Found iterator for %s", upstreamName)
 
-	server := iterator.NextHealthy()
+	server := iterator.NextLeastConServer()
 	if server == nil {
 		fmt.Fprintf(clientConn, "No available servers for upstream: %s\n", upstreamName)
 		return

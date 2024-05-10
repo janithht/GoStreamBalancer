@@ -38,7 +38,23 @@ func (l *IteratorImpl) Next() *UpstreamServer {
 	return server
 }
 
-func (l *IteratorImpl) NextHealthy() *UpstreamServer {
+func (l *IteratorImpl) NextRR() *UpstreamServer {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
+	if len(l.servers) == 0 {
+		return nil
+	}
+
+	for _, server := range l.servers {
+		if server.GetStatus() {
+			return server
+		}
+	}
+	return nil
+}
+
+func (l *IteratorImpl) NextLeastConServer() *UpstreamServer {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
@@ -75,5 +91,13 @@ func (iterator *IteratorImpl) MatchServer(clientIP string) *UpstreamServer {
 	hasher.Write([]byte(clientIP))
 	index := int(hasher.Sum32()) % len(iterator.servers)
 
-	return iterator.servers[index]
+	// Try to find a healthy server starting from the hashed index
+	for offset := 0; offset < len(iterator.servers); offset++ {
+		currentIndex := (index + offset) % len(iterator.servers)
+		server := iterator.servers[currentIndex]
+		if server.GetStatus() {
+			return server
+		}
+	}
+	return nil
 }

@@ -2,32 +2,49 @@ upstreams:
   - name: "stub-server-1"
     servers:
       - url: "http://localhost:8080"
-        status: false
+        status: true
       - url: "http://localhost:8081"
-        status: false
-      - url: "http://localhost:8082"
-        status: false
+        status: true
     healthCheck:
       url: "/health"
       interval: 5s
       timeout: 1s
+      enabled: false
     rateLimit:
       limit: 0
       interval: 1m
+    lbType: "roundrobin"
 
   - name: "stub-server-2"
     servers:
+      - url: "http://localhost:8082"
+        status: true
       - url: "http://localhost:8083"
-        status: false
-      - url: "http://localhost:8084"
-        status: false
+        status: true
     healthCheck:
       url: "/health"
       interval: 2s
       timeout: 1s
+      enabled: false
     rateLimit:
       limit: 0
       interval: 1m
+    lbType: "leastconn"
+
+  - name: "stub-server-3"
+    servers:
+      - url: "http://localhost:8084"
+        status: true
+    healthCheck:
+      url: "/health"
+      interval: 2s
+      timeout: 1s
+      enabled: false
+    rateLimit:
+      limit: 0
+      interval: 1m
+    lbType: "iphash"
+
 
   
     

@@ -12,6 +12,7 @@ type Upstream struct {
 	Servers     []*UpstreamServer `yaml:"servers"`
 	HealthCheck HealthCheck       `yaml:"healthCheck"`
 	RateLimit   RateLimit         `yaml:"rateLimit"`
+	LbType      string            `yaml:"lbType"`
 	Limiter     *ratelimits.RateLimiter
 }
 

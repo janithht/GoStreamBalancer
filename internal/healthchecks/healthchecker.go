@@ -60,6 +60,10 @@ func NewHealthCheckerImpl(upstreams []config.Upstream, httpClient HTTPClient, li
 
 func (h *HealthCheckerImpl) StartPolling(ctx context.Context) {
 	for _, upstream := range h.upstreams {
+		if !upstream.HealthCheck.Enabled {
+			log.Printf("Health checks are disabled for upstream %s", upstream.Name)
+			continue
+		}
 		iterator := config.NewIterator()
 		for _, server := range upstream.Servers {
 			iterator.Add(server)
