@@ -11,6 +11,7 @@ import (
 
 	"github.com/janithht/GoStreamBalancer/internal/config"
 	"github.com/janithht/GoStreamBalancer/internal/helpers"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func StartServer(upstreamMap map[string]*config.IteratorImpl, upstreamConfigMap map[string]*config.Upstream, cfg *config.Config, httpClient *http.Client, listener *helpers.SimpleHealthCheckListener) {
@@ -59,12 +60,12 @@ func StartServer(upstreamMap map[string]*config.IteratorImpl, upstreamConfigMap 
 		server.IncrementConnections()
 		defer server.DecrementConnections()
 
-		targetURL, err := url.Parse(server.Url)
+		url, err := url.Parse(server.Url)
 		if err != nil {
 			log.Fatalf("Failed to parse target URL: %v", err)
 		}
-		fmt.Printf("Proxying request to %s\n", targetURL)
-		proxy := httputil.NewSingleHostReverseProxy(targetURL)
+		fmt.Printf("Proxying request to %s\n", url)
+		proxy := httputil.NewSingleHostReverseProxy(url)
 		proxy.ServeHTTP(w, r)
 	})
 
@@ -74,6 +75,7 @@ func StartServer(upstreamMap map[string]*config.IteratorImpl, upstreamConfigMap 
 	mux.HandleFunc("/debug/pprof/profile", http.DefaultServeMux.ServeHTTP)
 	mux.HandleFunc("/debug/pprof/symbol", http.DefaultServeMux.ServeHTTP)
 	mux.HandleFunc("/debug/pprof/trace", http.DefaultServeMux.ServeHTTP)
+	mux.Handle("/metrics", promhttp.Handler())
 
 	fmt.Println("Load Balancer started on port 3000")
 	if err := http.ListenAndServe(":3000", mux); err != nil {

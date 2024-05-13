@@ -9,7 +9,7 @@ upstreams:
       url: "/health"
       interval: 5s
       timeout: 1s
-      enabled: false
+      enabled: true
     rateLimit:
       limit: 100
       interval: 1m
@@ -26,7 +26,7 @@ upstreams:
       url: "/health"
       interval: 2s
       timeout: 1s
-      enabled: false
+      enabled: true
     rateLimit:
       limit: 100
       interval: 1m
@@ -41,7 +41,7 @@ upstreams:
       url: "/health"
       interval: 2s
       timeout: 1s
-      enabled: false
+      enabled: true
     rateLimit:
       limit: 100
       interval: 1m

@@ -11,8 +11,9 @@ type Iterator interface {
 }
 
 type IteratorImpl struct {
-	mu      sync.Mutex
-	servers []*UpstreamServer
+	mu           sync.RWMutex
+	servers      []*UpstreamServer
+	currentIndex int
 }
 
 func NewIterator() *IteratorImpl {
@@ -46,9 +47,14 @@ func (l *IteratorImpl) NextRR() *UpstreamServer {
 		return nil
 	}
 
-	for _, server := range l.servers {
-		if server.GetStatus() {
-			return server
+	startIndex := l.currentIndex
+	numServers := len(l.servers)
+
+	for i := 0; i < numServers; i++ {
+		index := (startIndex + i) % numServers
+		if l.servers[index].GetStatus() {
+			l.currentIndex = (index + 1) % numServers
+			return l.servers[index]
 		}
 	}
 	return nil
