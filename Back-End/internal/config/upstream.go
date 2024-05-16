@@ -1,7 +1,6 @@
 package config
 
 import (
-	"log"
 	"strings"
 	"sync"
 
@@ -65,7 +64,7 @@ func BuildUpstreamConfigs(upstreams []Upstream) (map[string]*IteratorImpl, map[s
 		if upstream.RateLimit.Enabled {
 			upstream.Limiter = ratelimits.NewRateLimiter(upstream.RateLimit.Limit, upstream.RateLimit.Interval)
 		} else {
-			log.Printf("Rate limiting is disabled for upstream %s", upstream.Name)
+			//log.Printf("Rate limiting is disabled for upstream %s", upstream.Name)
 		}
 	}
 	return upstreamMap, upstreamConfigMap

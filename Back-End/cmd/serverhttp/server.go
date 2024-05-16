@@ -1,7 +1,7 @@
 package serverhttp
 
 import (
-	"fmt"
+	//"fmt"
 	"log"
 	"net/http"
 	"net/http/httputil"
@@ -64,7 +64,7 @@ func StartServer(upstreamMap map[string]*config.IteratorImpl, upstreamConfigMap 
 		if err != nil {
 			log.Fatalf("Failed to parse target URL: %v", err)
 		}
-		fmt.Printf("Proxying request to %s\n", url)
+		//fmt.Printf("Proxying request to %s\n", url)
 		proxy := httputil.NewSingleHostReverseProxy(url)
 		proxy.ServeHTTP(w, r)
 	})
@@ -77,7 +77,7 @@ func StartServer(upstreamMap map[string]*config.IteratorImpl, upstreamConfigMap 
 	mux.HandleFunc("/debug/pprof/trace", http.DefaultServeMux.ServeHTTP)
 	mux.Handle("/metrics", promhttp.Handler())
 
-	fmt.Println("Load Balancer started on port 3000")
+	//fmt.Println("Load Balancer started on port 3000")
 	if err := http.ListenAndServe(":3000", mux); err != nil {
 		log.Fatalf("Failed to start server: %v", err)
 	}

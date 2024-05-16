@@ -109,7 +109,7 @@ func (h *HealthCheckerImpl) performHealthCheck(ctx context.Context, server *conf
 
 	res, err := h.httpClient.Do(req)
 	if err != nil {
-		log.Printf("Error performing health check for server %s: %v", server.Url, err)
+		//log.Printf("Error performing health check for server %s: %v", server.Url, err)
 		server.SetStatus(false)
 		return
 	}
@@ -117,7 +117,7 @@ func (h *HealthCheckerImpl) performHealthCheck(ctx context.Context, server *conf
 		log.Printf("Health check failed for server %s: status code %d", server.Url, res.StatusCode)
 		server.SetStatus(false)
 	} else {
-		log.Printf("Health check passed for server %s", server.Url)
+		//log.Printf("Health check passed for server %s", server.Url)
 		server.SetStatus(true)
 	}
 }

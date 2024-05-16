@@ -32,5 +32,5 @@ func ProxyData(src, dst net.Conn) {
 }
 
 func (l *SimpleHealthCheckListener) HealthChecked(server *config.UpstreamServer, time time.Time) {
-	log.Printf("Health check performed for server %s at %s", server.Url, time.Format("2006-01-02T15:04:05Z07:00"))
+	//log.Printf("Health check performed for server %s at %s", server.Url, time.Format("2006-01-02T15:04:05Z07:00"))
 }

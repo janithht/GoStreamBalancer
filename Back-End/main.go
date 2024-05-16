@@ -20,7 +20,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error reading config: %v", err)
 	}
-	log.Printf("Config parsed successfully: %v\n", cfg)
+	//log.Printf("Config parsed successfully: %v\n", cfg)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
