@@ -17,6 +17,11 @@ import (
 func StartServer(upstreamMap map[string]*config.IteratorImpl, upstreamConfigMap map[string]*config.Upstream, cfg *config.Config, httpClient *http.Client, listener *helpers.SimpleHealthCheckListener) {
 	mux := http.NewServeMux()
 
+	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("Load Balancer Active"))
+	})
+
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		upstreamName := r.Header.Get("X-Upstream")
 		iterator, exists := upstreamMap[upstreamName]

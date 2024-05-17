@@ -1,0 +1,39 @@
+.overview {
+    display: flex;
+    justify-content: space-between;
+    padding: 20px;
+    margin-top: 20px;
+}
+
+.healthBox {
+    flex-grow: 1;
+    margin-right: 20px;
+    padding: 20px;
+    background-color: #ecf0f1;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.entryPoints {
+    width: 200px;
+    background-color: #bdc3c7;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.entryPoints h2,
+.healthBox h2 {
+    margin-top: 0;
+    color: #2c3e50;
+}
+
+.entryPoints ul {
+    list-style-type: none;
+    padding: 0;
+}
+
+.entryPoints li {
+    padding: 5px 0;
+    font-size: 16px;
+}

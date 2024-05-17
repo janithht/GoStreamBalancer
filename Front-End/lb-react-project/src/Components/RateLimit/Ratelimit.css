@@ -1,0 +1,38 @@
+.rateLimiting {
+    margin-top: 20px;
+    padding: 20px;
+    background-color: #f8f9fa;
+}
+
+.rateLimiting h2 {
+    margin-top: 0;
+    color: #2c3e50;
+}
+
+.limitsBox {
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.limitDetails {
+    flex: 1;
+    min-width: 200px; /* Minimum width for smaller screens */
+    margin-right: 20px;
+    padding: 20px;
+    background-color: #ecf0f1;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+}
+
+.limitDetails h3 {
+    margin-top: 0;
+}
+
+.limitDetails p {
+    margin: 5px 0;
+}
+
+.overLimit {
+    color: #c0392b; /* Color for alerting limit exceeded */
+}
