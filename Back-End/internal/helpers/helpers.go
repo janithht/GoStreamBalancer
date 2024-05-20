@@ -4,6 +4,7 @@ import (
 	"io"
 	"log"
 	"net"
+	"net/http"
 	"net/url"
 	"time"
 
@@ -33,4 +34,17 @@ func ProxyData(src, dst net.Conn) {
 
 func (l *SimpleHealthCheckListener) HealthChecked(server *config.UpstreamServer, time time.Time) {
 	//log.Printf("Health check performed for server %s at %s", server.Url, time.Format("2006-01-02T15:04:05Z07:00"))
+}
+
+func CreateHttpClient() *http.Client {
+	transport := &http.Transport{
+		MaxIdleConns:        100,
+		MaxIdleConnsPerHost: 10,
+		IdleConnTimeout:     90 * time.Second,
+		DisableKeepAlives:   false,
+	}
+
+	return &http.Client{
+		Transport: transport,
+	}
 }

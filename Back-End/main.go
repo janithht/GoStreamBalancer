@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"log"
-	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -28,7 +27,7 @@ func main() {
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
-	httpClient := &http.Client{}
+	httpClient := helpers.CreateHttpClient()
 	listener := &helpers.SimpleHealthCheckListener{}
 	healthChecker := healthchecks.NewHealthCheckerImpl(cfg.Upstreams, httpClient, listener)
 	go healthChecker.StartPolling(ctx)
