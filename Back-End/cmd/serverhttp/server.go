@@ -8,6 +8,7 @@ import (
 	_ "net/http/pprof"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/janithht/GoStreamBalancer/internal/config"
 	"github.com/janithht/GoStreamBalancer/internal/helpers"
@@ -25,9 +26,14 @@ func StartServer(upstreamMap map[string]*config.IteratorImpl, upstreamConfigMap 
 
 	mux.HandleFunc("/debug/pprof/", http.DefaultServeMux.ServeHTTP)
 	mux.HandleFunc("/debug/pprof/profile", http.DefaultServeMux.ServeHTTP)
-	mux.Handle("/metrics", promhttp.Handler())
+	mux.HandleFunc("/debug/pprof/heap", http.DefaultServeMux.ServeHTTP)
+	mux.Handle("/metrics", promhttp.HandlerFor(metrics.CustomRegistry, promhttp.HandlerOpts{}))
 
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		startTime := time.Now()
+		defer func() {
+			metrics.ResponseTimes.Observe(float64(time.Since(startTime).Milliseconds()))
+		}()
 		metrics.RecordRequest()
 
 		upstreamName := r.Header.Get("X-Upstream")
@@ -80,7 +86,7 @@ func StartServer(upstreamMap map[string]*config.IteratorImpl, upstreamConfigMap 
 
 		url, err := url.Parse(server.Url)
 		if err != nil {
-			log.Fatalf("Failed to parse target URL: %v", err)
+			log.Printf("Failed to parse target URL: %v", err)
 		}
 		proxy := httputil.NewSingleHostReverseProxy(url)
 		proxy.ServeHTTP(w, r)
@@ -88,6 +94,6 @@ func StartServer(upstreamMap map[string]*config.IteratorImpl, upstreamConfigMap 
 
 	//fmt.Println("Load Balancer started on port 3000")
 	if err := http.ListenAndServe(":3000", mux); err != nil {
-		log.Fatalf("Failed to start server: %v", err)
+		log.Printf("Failed to start server: %v", err)
 	}
 }

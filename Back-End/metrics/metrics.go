@@ -1,8 +1,6 @@
 package metrics
 
 import (
-	"time"
-
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -30,15 +28,15 @@ var (
 		Help:    "Histogram of latencies for incoming requests.",
 		Buckets: prometheus.DefBuckets,
 	}, []string{"endpoint"})
-
-	concurrentRequests = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "loadbalancer_concurrent_requests",
-		Help: "Current number of concurrent requests being processed.",
+	ResponseTimes = prometheus.NewHistogram(prometheus.HistogramOpts{
+		Name:    "loadbalancer_response_times",
+		Help:    "Histogram of response times of the load balancer in milliseconds",
+		Buckets: prometheus.LinearBuckets(10, 10, 10), // Adjust buckets as needed
 	})
 )
 
 func init() {
-	CustomRegistry.MustRegister(totalRequests, requestErrors, upstreamConnections, rateLimitHits, requestLatency, concurrentRequests)
+	CustomRegistry.MustRegister(totalRequests, requestErrors, upstreamConnections, rateLimitHits, requestLatency, ResponseTimes)
 }
 
 func RecordRequest() {
@@ -55,13 +53,4 @@ func SetConnections(serverName string, count float64) {
 
 func RecordRateLimitHit() {
 	rateLimitHits.Inc()
-}
-
-func RecordRequestStart() {
-	concurrentRequests.Inc()
-}
-
-func RecordRequestEnd(endpoint string, startTime time.Time) {
-	concurrentRequests.Dec()
-	requestLatency.WithLabelValues(endpoint).Observe(time.Since(startTime).Seconds())
 }
