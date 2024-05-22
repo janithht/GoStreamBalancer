@@ -14,7 +14,7 @@ upstreams:
       limit: 100
       interval: 1m
       enabled: false
-    lbType: "roundrobin"
+    lbType: "leastconn"
 
   - name: "stub-server-2"
     servers:
@@ -46,7 +46,7 @@ upstreams:
       limit: 100
       interval: 1m
       enabled: false
-    lbType: "iphash"
+    lbType: "leastconn"
 
 
   

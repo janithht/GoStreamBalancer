@@ -1,8 +1,10 @@
 package config
 
 import (
+	"container/heap"
 	"hash/fnv"
 	"sync"
+	"sync/atomic"
 )
 
 type Iterator interface {
@@ -12,7 +14,7 @@ type Iterator interface {
 
 type IteratorImpl struct {
 	mu           sync.RWMutex
-	servers      []*UpstreamServer
+	servers      ServerHeap
 	currentIndex int
 }
 
@@ -23,7 +25,7 @@ func NewIterator() *IteratorImpl {
 func (l *IteratorImpl) Add(server *UpstreamServer) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	l.servers = append(l.servers, server)
+	heap.Push(&l.servers, &PriorityServer{server: server})
 }
 
 func (l *IteratorImpl) Next() *UpstreamServer {
@@ -33,9 +35,8 @@ func (l *IteratorImpl) Next() *UpstreamServer {
 	if len(l.servers) == 0 {
 		return nil
 	}
-
-	server := l.servers[0]
-	l.servers = append(l.servers[1:], server)
+	server := l.servers[l.currentIndex].server
+	l.currentIndex = (l.currentIndex + 1) % len(l.servers)
 	return server
 }
 
@@ -52,9 +53,10 @@ func (l *IteratorImpl) NextRR() *UpstreamServer {
 
 	for i := 0; i < numServers; i++ {
 		index := (startIndex + i) % numServers
-		if l.servers[index].GetStatus() {
+		server := l.servers[index].server
+		if server.GetStatus() {
 			l.currentIndex = (index + 1) % numServers
-			return l.servers[index]
+			return server
 		}
 	}
 	return nil
@@ -68,20 +70,12 @@ func (l *IteratorImpl) NextLeastConServer() *UpstreamServer {
 		return nil
 	}
 
-	var leastConnServer *UpstreamServer
-	minConnections := int(^uint(0) >> 1)
+	// Pop the server with the least connections
+	leastConnServer := heap.Pop(&l.servers).(*PriorityServer)
+	defer heap.Push(&l.servers, leastConnServer) // Push it back after incrementing connections
 
-	for _, server := range l.servers {
-		if server.GetStatus() && server.ActiveConnections < minConnections {
-			minConnections = server.ActiveConnections
-			leastConnServer = server
-		}
-	}
-
-	if leastConnServer != nil {
-		leastConnServer.IncrementConnections()
-	}
-	return leastConnServer
+	atomic.AddInt32(&leastConnServer.server.ActiveConnections, 1)
+	return leastConnServer.server
 }
 
 func (iterator *IteratorImpl) MatchServer(clientIP string) *UpstreamServer {
@@ -92,7 +86,6 @@ func (iterator *IteratorImpl) MatchServer(clientIP string) *UpstreamServer {
 		return nil
 	}
 
-	// Calculate the hash of the client's IP address
 	hasher := fnv.New32()
 	hasher.Write([]byte(clientIP))
 	index := int(hasher.Sum32()) % len(iterator.servers)
@@ -100,7 +93,7 @@ func (iterator *IteratorImpl) MatchServer(clientIP string) *UpstreamServer {
 	// Try to find a healthy server starting from the hashed index
 	for offset := 0; offset < len(iterator.servers); offset++ {
 		currentIndex := (index + offset) % len(iterator.servers)
-		server := iterator.servers[currentIndex]
+		server := iterator.servers[currentIndex].server
 		if server.GetStatus() {
 			return server
 		}

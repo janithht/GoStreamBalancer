@@ -11,6 +11,7 @@ import (
 
 	"github.com/janithht/GoStreamBalancer/internal/config"
 	"github.com/janithht/GoStreamBalancer/internal/helpers"
+	"github.com/janithht/GoStreamBalancer/metrics"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
@@ -22,17 +23,26 @@ func StartServer(upstreamMap map[string]*config.IteratorImpl, upstreamConfigMap 
 		w.Write([]byte("Load Balancer Active"))
 	})
 
+	mux.HandleFunc("/debug/pprof/", http.DefaultServeMux.ServeHTTP)
+	mux.HandleFunc("/debug/pprof/profile", http.DefaultServeMux.ServeHTTP)
+	mux.Handle("/metrics", promhttp.Handler())
+
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		metrics.RecordRequest()
+
 		upstreamName := r.Header.Get("X-Upstream")
 		iterator, exists := upstreamMap[upstreamName]
 		upstreamConfig, configExists := upstreamConfigMap[upstreamName]
 
 		if !exists || !configExists {
+			metrics.RecordError("404")
 			http.Error(w, "Upstream not found or has no servers", http.StatusNotFound)
 			return
 		}
 
 		if upstreamConfig.Limiter != nil && !upstreamConfig.Limiter.Allow() {
+			metrics.RecordError("429")
+			metrics.RecordRateLimitHit()
 			log.Printf("Rate limit exceeded for %s", upstreamName)
 			http.Error(w, "Rate limit exceeded", http.StatusTooManyRequests)
 			return
@@ -52,35 +62,29 @@ func StartServer(upstreamMap map[string]*config.IteratorImpl, upstreamConfigMap 
 			}
 			server = iterator.MatchServer(clientIP)
 		default:
+			metrics.RecordError("400")
 			http.Error(w, "Unsupported load-balancing type", http.StatusBadRequest)
 			return
 		}
 
 		if server == nil {
+			metrics.RecordError("503")
 			http.Error(w, "No available upstream servers", http.StatusServiceUnavailable)
 			return
 		}
 
-		// Proxy request to the selected server
 		server.IncrementConnections()
 		defer server.DecrementConnections()
+
+		metrics.SetConnections(server.Url, float64(server.ActiveConnections))
 
 		url, err := url.Parse(server.Url)
 		if err != nil {
 			log.Fatalf("Failed to parse target URL: %v", err)
 		}
-		//fmt.Printf("Proxying request to %s\n", url)
 		proxy := httputil.NewSingleHostReverseProxy(url)
 		proxy.ServeHTTP(w, r)
 	})
-
-	// Include additional debug endpoints for profiling
-	mux.HandleFunc("/debug/pprof/", http.DefaultServeMux.ServeHTTP)
-	mux.HandleFunc("/debug/pprof/cmdline", http.DefaultServeMux.ServeHTTP)
-	mux.HandleFunc("/debug/pprof/profile", http.DefaultServeMux.ServeHTTP)
-	mux.HandleFunc("/debug/pprof/symbol", http.DefaultServeMux.ServeHTTP)
-	mux.HandleFunc("/debug/pprof/trace", http.DefaultServeMux.ServeHTTP)
-	mux.Handle("/metrics", promhttp.Handler())
 
 	//fmt.Println("Load Balancer started on port 3000")
 	if err := http.ListenAndServe(":3000", mux); err != nil {

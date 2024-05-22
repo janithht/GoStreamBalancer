@@ -38,13 +38,15 @@ func (l *SimpleHealthCheckListener) HealthChecked(server *config.UpstreamServer,
 
 func CreateHttpClient() *http.Client {
 	transport := &http.Transport{
-		MaxIdleConns:        100,
-		MaxIdleConnsPerHost: 10,
-		IdleConnTimeout:     90 * time.Second,
+		MaxIdleConns:        1000,
+		MaxIdleConnsPerHost: 100,
+		IdleConnTimeout:     30 * time.Second,
 		DisableKeepAlives:   false,
+		ForceAttemptHTTP2:   true,
 	}
 
 	return &http.Client{
 		Transport: transport,
+		Timeout:   10 * time.Second,
 	}
 }

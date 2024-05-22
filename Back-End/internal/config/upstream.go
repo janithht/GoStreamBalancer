@@ -3,6 +3,7 @@ package config
 import (
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	"github.com/janithht/GoStreamBalancer/internal/ratelimits"
 )
@@ -19,9 +20,16 @@ type Upstream struct {
 type UpstreamServer struct {
 	Url               string `yaml:"url"`
 	Status            bool   `yaml:"status"`
-	ActiveConnections int
-	mu                sync.Mutex
+	ActiveConnections int32
+	mu                sync.RWMutex
 }
+
+type PriorityServer struct {
+	server *UpstreamServer
+	index  int // index in the heap
+}
+
+type ServerHeap []*PriorityServer
 
 func (server *UpstreamServer) SetStatus(status bool) {
 	server.mu.Lock()
@@ -30,23 +38,43 @@ func (server *UpstreamServer) SetStatus(status bool) {
 }
 
 func (server *UpstreamServer) GetStatus() bool {
-	server.mu.Lock()
-	defer server.mu.Unlock()
+	server.mu.RLock()
+	defer server.mu.RUnlock()
 	return server.Status
 }
 
 func (server *UpstreamServer) IncrementConnections() {
-	server.mu.Lock()
-	server.ActiveConnections++
-	server.mu.Unlock()
+	atomic.AddInt32(&server.ActiveConnections, 1)
 }
 
 func (server *UpstreamServer) DecrementConnections() {
-	server.mu.Lock()
-	if server.ActiveConnections > 0 {
-		server.ActiveConnections--
-	}
-	server.mu.Unlock()
+	atomic.AddInt32(&server.ActiveConnections, -1)
+}
+
+func (h ServerHeap) Len() int { return len(h) }
+func (h ServerHeap) Less(i, j int) bool {
+	return h[i].server.ActiveConnections < h[j].server.ActiveConnections
+}
+func (h ServerHeap) Swap(i, j int) {
+	h[i], h[j] = h[j], h[i]
+	h[i].index = i
+	h[j].index = j
+}
+
+func (h *ServerHeap) Push(x interface{}) {
+	n := len(*h)
+	item := x.(*PriorityServer)
+	item.index = n
+	*h = append(*h, item)
+}
+
+func (h *ServerHeap) Pop() interface{} {
+	old := *h
+	n := len(old)
+	item := old[n-1]
+	item.index = -1 // for safety
+	*h = old[0 : n-1]
+	return item
 }
 
 func BuildUpstreamConfigs(upstreams []Upstream) (map[string]*IteratorImpl, map[string]*Upstream) {
@@ -63,8 +91,6 @@ func BuildUpstreamConfigs(upstreams []Upstream) (map[string]*IteratorImpl, map[s
 		upstreamConfigMap[strings.ToLower(upstream.Name)] = upstream
 		if upstream.RateLimit.Enabled {
 			upstream.Limiter = ratelimits.NewRateLimiter(upstream.RateLimit.Limit, upstream.RateLimit.Interval)
-		} else {
-			//log.Printf("Rate limiting is disabled for upstream %s", upstream.Name)
 		}
 	}
 	return upstreamMap, upstreamConfigMap
