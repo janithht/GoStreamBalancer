@@ -120,4 +120,6 @@ func (h *HealthCheckerImpl) performHealthCheck(ctx context.Context, server *conf
 		//log.Printf("Health check passed for server %s", server.Url)
 		server.SetStatus(true)
 	}
+	server.LastCheck = time.Now()
+	server.LastSuccess = (res.StatusCode == http.StatusOK)
 }

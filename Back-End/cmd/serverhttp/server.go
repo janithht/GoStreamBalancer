@@ -2,6 +2,7 @@ package serverhttp
 
 import (
 	//"fmt"
+	"encoding/json"
 	"log"
 	"net/http"
 	"net/http/httputil"
@@ -10,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gorilla/handlers"
 	"github.com/janithht/GoStreamBalancer/internal/config"
 	"github.com/janithht/GoStreamBalancer/internal/helpers"
 	"github.com/janithht/GoStreamBalancer/metrics"
@@ -18,6 +20,12 @@ import (
 
 func StartServer(upstreamMap map[string]*config.IteratorImpl, upstreamConfigMap map[string]*config.Upstream, cfg *config.Config, httpClient *http.Client, listener *helpers.SimpleHealthCheckListener) {
 	mux := http.NewServeMux()
+
+	headersOk := handlers.AllowedHeaders([]string{"X-Requested-With", "Content-Type", "Authorization"})
+	originsOk := handlers.AllowedOrigins([]string{"*"}) // Adjust this to be more restrictive
+	methodsOk := handlers.AllowedMethods([]string{"GET", "HEAD", "POST", "PUT", "OPTIONS"})
+
+	handlerWithCORS := handlers.CORS(originsOk, headersOk, methodsOk)(mux)
 
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -92,8 +100,16 @@ func StartServer(upstreamMap map[string]*config.IteratorImpl, upstreamConfigMap 
 		proxy.ServeHTTP(w, r)
 	})
 
-	//fmt.Println("Load Balancer started on port 3000")
-	if err := http.ListenAndServe(":3000", mux); err != nil {
+	mux.HandleFunc("/upstream-health", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		encoder := json.NewEncoder(w)
+		if err := encoder.Encode(config.CollectHealthData(upstreamConfigMap)); err != nil {
+			http.Error(w, "Failed to encode health data", http.StatusInternalServerError)
+		}
+	})
+
+	//fmt.Println("Load Balancer started on port 9000")
+	if err := http.ListenAndServe(":9000", handlerWithCORS); err != nil {
 		log.Printf("Failed to start server: %v", err)
 	}
 }

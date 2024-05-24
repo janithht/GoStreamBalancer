@@ -9,7 +9,7 @@ function Header() {
     };
 
     return (
-        <section id = "header">
+        <section id="header">
             <header className="header">
                 <h1 className="loadBalancerName">My Load Balancer</h1>
                 <div className="switches">

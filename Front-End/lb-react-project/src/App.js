@@ -1,5 +1,4 @@
 import './App.css';
-import Main from './Components/Main';
 import Header from './Components/Header/Header';
 import Overview from './Components/Overview/Overview';
 import Upstreams from './Components/Upstreams/Upstreams';

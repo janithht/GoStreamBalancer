@@ -4,6 +4,7 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/janithht/GoStreamBalancer/internal/ratelimits"
 )
@@ -21,6 +22,8 @@ type UpstreamServer struct {
 	Url               string `yaml:"url"`
 	Status            bool   `yaml:"status"`
 	ActiveConnections int32
+	LastCheck         time.Time
+	LastSuccess       bool
 	mu                sync.RWMutex
 }
 
@@ -94,4 +97,38 @@ func BuildUpstreamConfigs(upstreams []Upstream) (map[string]*IteratorImpl, map[s
 		}
 	}
 	return upstreamMap, upstreamConfigMap
+}
+
+func CollectHealthData(upstreamConfigMap map[string]*Upstream) []UpstreamHealth {
+	var upstreamsHealth []UpstreamHealth
+	for _, upstream := range upstreamConfigMap {
+		var serversHealth []ServerHealth
+		for _, server := range upstream.Servers {
+			server.mu.Lock()
+			serversHealth = append(serversHealth, ServerHealth{
+				URL:         server.Url,
+				Status:      server.Status,
+				LastCheck:   server.LastCheck,
+				LastSuccess: server.LastSuccess,
+			})
+			server.mu.Unlock()
+		}
+		upstreamsHealth = append(upstreamsHealth, UpstreamHealth{
+			Name:    upstream.Name,
+			Servers: serversHealth,
+		})
+	}
+	return upstreamsHealth
+}
+
+type UpstreamHealth struct {
+	Name    string         `json:"name"`
+	Servers []ServerHealth `json:"servers"`
+}
+
+type ServerHealth struct {
+	URL         string    `json:"url"`
+	Status      bool      `json:"status"`
+	LastCheck   time.Time `json:"lastCheck"`
+	LastSuccess bool      `json:"lastSuccess"`
 }

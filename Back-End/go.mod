@@ -3,6 +3,7 @@ module github.com/janithht/GoStreamBalancer
 go 1.19
 
 require (
+	github.com/gorilla/handlers v1.5.2
 	github.com/prometheus/client_golang v1.19.1
 	gopkg.in/yaml.v2 v2.4.0
 )
@@ -10,6 +11,7 @@ require (
 require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
+	github.com/felixge/httpsnoop v1.0.3 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/prometheus/client_model v0.5.0 // indirect
 	github.com/prometheus/common v0.48.0 // indirect
