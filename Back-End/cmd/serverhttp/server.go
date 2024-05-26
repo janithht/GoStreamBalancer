@@ -1,12 +1,10 @@
 package serverhttp
 
 import (
-	//"fmt"
 	"encoding/json"
 	"log"
 	"net/http"
 	"net/http/httputil"
-	_ "net/http/pprof"
 	"net/url"
 	"strings"
 	"time"
@@ -39,30 +37,32 @@ func StartServer(upstreamMap map[string]*config.IteratorImpl, upstreamConfigMap 
 
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		startTime := time.Now()
-		defer func() {
-			metrics.ResponseTimes.Observe(float64(time.Since(startTime).Milliseconds()))
-		}()
-		metrics.RecordRequest()
 
 		upstreamName := r.Header.Get("X-Upstream")
 		iterator, exists := upstreamMap[upstreamName]
 		upstreamConfig, configExists := upstreamConfigMap[upstreamName]
 
+		metrics.RecordRequest(upstreamName)
+		defer func() {
+			responseTime := float64(time.Since(startTime).Milliseconds())
+			metrics.RequestLatency.WithLabelValues(upstreamName).Observe(responseTime)
+			metrics.ResponseTimes.Observe(responseTime)
+		}()
+
 		if !exists || !configExists {
-			metrics.RecordError("404")
+			metrics.RecordError("404", upstreamName)
 			http.Error(w, "Upstream not found or has no servers", http.StatusNotFound)
 			return
 		}
 
 		if upstreamConfig.Limiter != nil && !upstreamConfig.Limiter.Allow() {
-			metrics.RecordError("429")
-			metrics.RecordRateLimitHit()
+			metrics.RecordError("429", upstreamName)
+			metrics.RecordRateLimitHit(upstreamName)
 			log.Printf("Rate limit exceeded for %s", upstreamName)
 			http.Error(w, "Rate limit exceeded", http.StatusTooManyRequests)
 			return
 		}
 
-		// Determine which load-balancing strategy to use
 		var server *config.UpstreamServer
 		switch strings.ToLower(upstreamConfig.LbType) {
 		case "roundrobin":
@@ -72,17 +72,17 @@ func StartServer(upstreamMap map[string]*config.IteratorImpl, upstreamConfigMap 
 		case "iphash":
 			clientIP := r.RemoteAddr
 			if colonIndex := strings.LastIndex(clientIP, ":"); colonIndex != -1 {
-				clientIP = clientIP[:colonIndex] // Remove port information
+				clientIP = clientIP[:colonIndex]
 			}
 			server = iterator.MatchServer(clientIP)
 		default:
-			metrics.RecordError("400")
+			metrics.RecordError("400", upstreamName)
 			http.Error(w, "Unsupported load-balancing type", http.StatusBadRequest)
 			return
 		}
 
 		if server == nil {
-			metrics.RecordError("503")
+			metrics.RecordError("503", upstreamName)
 			http.Error(w, "No available upstream servers", http.StatusServiceUnavailable)
 			return
 		}
@@ -95,6 +95,7 @@ func StartServer(upstreamMap map[string]*config.IteratorImpl, upstreamConfigMap 
 		url, err := url.Parse(server.Url)
 		if err != nil {
 			log.Printf("Failed to parse target URL: %v", err)
+			return
 		}
 		proxy := httputil.NewSingleHostReverseProxy(url)
 		proxy.ServeHTTP(w, r)
@@ -108,7 +109,6 @@ func StartServer(upstreamMap map[string]*config.IteratorImpl, upstreamConfigMap 
 		}
 	})
 
-	//fmt.Println("Load Balancer started on port 9000")
 	if err := http.ListenAndServe(":9000", handlerWithCORS); err != nil {
 		log.Printf("Failed to start server: %v", err)
 	}

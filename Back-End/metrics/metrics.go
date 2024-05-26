@@ -7,50 +7,64 @@ import (
 var CustomRegistry = prometheus.NewRegistry()
 
 var (
-	totalRequests = prometheus.NewCounter(prometheus.CounterOpts{
+	TotalRequests = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name: "loadbalancer_requests_total",
 		Help: "Total number of requests processed by the load balancer.",
-	})
-	requestErrors = prometheus.NewCounterVec(prometheus.CounterOpts{
+	}, []string{"upstream"})
+
+	SuccessfulRequests = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: "loadbalancer_requests_successful",
+		Help: "Total number of successful requests processed by the load balancer.",
+	}, []string{"upstream"})
+
+	RequestErrors = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name: "loadbalancer_request_errors_total",
-		Help: "Total number of request errors by type.",
-	}, []string{"status_code"})
-	upstreamConnections = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Help: "Total number of request errors by type and upstream.",
+	}, []string{"status_code", "upstream"})
+
+	UpstreamConnections = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "loadbalancer_upstream_connections",
 		Help: "Current number of active connections to upstream servers.",
-	}, []string{"server_name"})
-	rateLimitHits = prometheus.NewCounter(prometheus.CounterOpts{
+	}, []string{"upstream"})
+
+	RateLimitHits = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name: "loadbalancer_rate_limit_hits_total",
-		Help: "Total number of times rate limits were hit.",
-	})
-	requestLatency = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+		Help: "Total number of times rate limits were hit per upstream.",
+	}, []string{"upstream"})
+
+	RequestLatency = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 		Name:    "loadbalancer_request_latency_seconds",
 		Help:    "Histogram of latencies for incoming requests.",
 		Buckets: prometheus.DefBuckets,
-	}, []string{"endpoint"})
+	}, []string{"upstream"})
+
 	ResponseTimes = prometheus.NewHistogram(prometheus.HistogramOpts{
-		Name:    "loadbalancer_response_times",
+		Name:    "loadbalancer_response_times_milliseconds",
 		Help:    "Histogram of response times of the load balancer in milliseconds",
-		Buckets: prometheus.LinearBuckets(10, 10, 10), // Adjust buckets as needed
+		Buckets: prometheus.LinearBuckets(10, 10, 10), // Start at 10ms with 10ms increments
 	})
 )
 
 func init() {
-	CustomRegistry.MustRegister(totalRequests, requestErrors, upstreamConnections, rateLimitHits, requestLatency, ResponseTimes)
+	CustomRegistry.MustRegister(TotalRequests, SuccessfulRequests, RequestErrors, UpstreamConnections, RateLimitHits, RequestLatency, ResponseTimes)
 }
 
-func RecordRequest() {
-	totalRequests.Inc()
+func RecordRequest(upstream string) {
+	TotalRequests.WithLabelValues(upstream).Inc()
 }
 
-func RecordError(statusCode string) {
-	requestErrors.With(prometheus.Labels{"status_code": statusCode}).Inc()
+func RecordSuccess(upstream string) {
+	SuccessfulRequests.WithLabelValues(upstream).Inc()
 }
 
-func SetConnections(serverName string, count float64) {
-	upstreamConnections.With(prometheus.Labels{"server_name": serverName}).Set(count)
+func RecordError(statusCode, upstream string) {
+	RequestErrors.WithLabelValues(statusCode, upstream).Inc()
 }
 
-func RecordRateLimitHit() {
-	rateLimitHits.Inc()
+func SetConnections(upstream string, count float64) {
+	UpstreamConnections.WithLabelValues(upstream).Set(count)
+}
+
+func RecordRateLimitHit(upstream string) {
+	RateLimitHits.WithLabelValues(upstream).Inc()
 }
