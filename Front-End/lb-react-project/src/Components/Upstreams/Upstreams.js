@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Typography, Select, MenuItem, FormControl, InputLabel, Card, List, ListItem, ListItemText, Box, Grid } from '@mui/material';
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import './Upstreams.css';
 
 const Upstreams = () => {
     const [upstreams, setUpstreams] = useState([]);
@@ -39,11 +40,11 @@ const Upstreams = () => {
     };
 
     return (
-        <Box sx={{ width: '100%', maxWidth: 1200, margin: '0 auto', mt: 4, textAlign: 'left' }}>
-            <Typography variant="h4" gutterBottom sx={{ textAlign: 'left' }}>
+        <Box className="upstreams">
+            <Typography variant="h4" gutterBottom className="upstreamsTitle">
                 Upstreams Health Status
             </Typography>
-            <FormControl fullWidth sx={{ textAlign: 'left' }}>
+            <FormControl fullWidth className="upstreamSelectForm">
                 <InputLabel id="upstream-select-label">Select an Upstream</InputLabel>
                 <Select
                     labelId="upstream-select-label"
@@ -60,10 +61,10 @@ const Upstreams = () => {
                 </Select>
             </FormControl>
             {selectedUpstreamDetails && (
-                <Grid container spacing={2} sx={{ mt: 2 }}>
+                <Grid container spacing={2} className="upstreamDetails">
                     <Grid item xs={12} md={6}>
-                        <Card variant="outlined" sx={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                            <Typography variant="h6" sx={{ p: 2, width: '100%', margin: '0 auto'}}>
+                        <Card variant="outlined" className="overallHealthCard">
+                            <Typography variant="h6" className="overallHealthTitle">
                                 Overall Health
                             </Typography>
                             <ResponsiveContainer width="100%" height={300}>
@@ -75,7 +76,6 @@ const Upstreams = () => {
                                         cx="50%"
                                         cy="50%"
                                         outerRadius={100}
-                                        fill="#8884d8"
                                         label
                                     >
                                         {prepareChartData(selectedUpstreamDetails).map((entry, index) => (
@@ -89,11 +89,11 @@ const Upstreams = () => {
                         </Card>
                     </Grid>
                     <Grid item xs={12} md={6}>
-                        <Card variant="outlined" sx={{ height: '100%' }}>
-                            <Typography variant="h6" sx={{ p: 2 }}>
+                        <Card variant="outlined" className="serverStatusCard">
+                            <Typography variant="h6" className="serverStatusTitle">
                                 Server Statuses
                             </Typography>
-                            <List>
+                            <List className="serverStatusList">
                                 {selectedUpstreamDetails.servers.map((server, index) => (
                                     <ListItem key={index} divider>
                                         <ListItemText primary={`URL: ${server.url}`} secondary={`Status: ${server.status ? 'Healthy' : 'Down'}, Last Check: ${new Date(server.lastCheck).toLocaleString()}, Last Success: ${server.lastSuccess ? 'Yes' : 'No'}`} />

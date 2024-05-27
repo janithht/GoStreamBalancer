@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import './Header.css';
+import logo from '../../Assets/lblogo.png';
 
 function Header() {
     const [isHttp, setIsHttp] = useState(true);
@@ -11,7 +12,8 @@ function Header() {
     return (
         <section id="header">
             <header className="header">
-                <h1 className="loadBalancerName">My Load Balancer</h1>
+            <img src={logo} alt="Logo" className="logo" /> 
+                <h1 className="loadBalancerName"><i>Go Stream Balancer</i></h1>
                 <div className="switches">
                     <button
                         className={`switch ${isHttp ? "active" : ""}`}

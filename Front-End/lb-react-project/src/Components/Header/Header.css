@@ -1,13 +1,29 @@
 .header {
     display: flex;
     align-items: center;
-    background-color: #2a3f5f; /* Dark blue background */
+    background-color: #2c3e50; 
     color: white;
-    padding: 2px 5px;
+    padding: 5px 10px; 
+    border-bottom: 2px solid #1a8cd8;
+}
+
+.logo {
+    height: 40px; 
+    margin-right: 10px;
 }
 
 .loadBalancerName {
     flex-grow: 1;
+    font-size: 1.5em;
+    font-weight: bold;
+    font-family: 'Arial', sans-serif;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+    letter-spacing: 1px;
+    background: linear-gradient(30deg, #ffffff, #ffffff, #dbe4f3);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-align: left;
 }
 
 .switches {
@@ -15,20 +31,21 @@
 }
 
 .switch {
-    background-color: #345b7e; /* Standard inactive state: Deep sky blue */
-    color: white;
+    background-color: #345b7e; 
     border: none;
     padding: 10px 20px;
     margin-left: 10px;
     cursor: pointer;
     transition: background-color 0.3s ease;
     outline: none;
+    border-radius: 5px; 
+    font-size: 1em; 
 }
 
 .switch.active {
-    background-color: #1a8cd8; /* Active state: Brighter blue */
+    background-color: #d1d2f7; 
 }
 
 .switch:not(.active):hover {
-    background-color: #157ab3; /* Hover state: Medium blue */
+    background-color: #157ab3; 
 }

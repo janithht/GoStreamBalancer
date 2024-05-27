@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"net/http/httputil"
+	_ "net/http/pprof"
 	"net/url"
 	"strings"
 	"time"
@@ -20,7 +21,7 @@ func StartServer(upstreamMap map[string]*config.IteratorImpl, upstreamConfigMap 
 	mux := http.NewServeMux()
 
 	headersOk := handlers.AllowedHeaders([]string{"X-Requested-With", "Content-Type", "Authorization"})
-	originsOk := handlers.AllowedOrigins([]string{"*"}) // Adjust this to be more restrictive
+	originsOk := handlers.AllowedOrigins([]string{"*"})
 	methodsOk := handlers.AllowedMethods([]string{"GET", "HEAD", "POST", "PUT", "OPTIONS"})
 
 	handlerWithCORS := handlers.CORS(originsOk, headersOk, methodsOk)(mux)

@@ -1,65 +1,127 @@
-#upstreams {
-    font-family: Arial, sans-serif;
-    margin: 20px;
-    padding: 20px;
-    border-radius: 8px;
-    background-color: #f4f4f4;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    text-align: left; 
-}
+@import url('https://fonts.googleapis.com/css2?family=Lexend:wght@400;700&display=swap');
 
-#upstreams .MuiFormControl-root { 
+.upstreams {
+    font-family: 'Lexend', sans-serif;
     width: 100%;
-    margin-top: 20px;
+    max-width: 1200px;
+    margin: 0 auto 40px;
+    margin-top: 40px;
     text-align: left;
+    padding: 20px;
+    background-color: #2c3e50;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-#upstreams h2 {
-    color: #333;
+.upstreamsTitle {
+    color: #ecf0f1;
+    font-size: 2em;
+    font-weight: bold;
+    text-transform: uppercase;
+    text-align: center;
+    margin-bottom: 20px;
 }
 
-#upstreams .select-container {
-    margin: 20px 0;
+.upstreamSelectForm {
+    margin-bottom: 50px;
     text-align: left;
+    border-color: #fff;
+    background-color: #34495e;
+    border-radius: 8px;
+    padding: 50px;
 }
 
-#upstreams .dataBoxes {
-    margin-top: 20px;
+.upstreamSelectForm .MuiInputLabel-root {
+    color: #ecf0f1; 
 }
 
-#upstreams .statusBox {
-    margin-top: 10px;
+.upstreamSelectForm .MuiSelect-root {
+    color: #ecf0f1;
+    background-color: #2c3e50; 
 }
 
-#upstreams .statusBox h3 {
-    color: #555;
+.upstreamSelectForm .MuiSelect-icon {
+    color: #ecf0f1; 
 }
 
-#upstreams ul {
-    list-style-type: none;
-    padding: 0;
+.upstreamSelectForm .MuiMenu-paper {
+    background-color: #34495e; 
 }
 
-#upstreams li {
-    padding: 8px;
+.upstreamSelectForm .MuiMenuItem-root {
+    color: #ecf0f1;
+    transition: background-color 0.3s ease;
+}
+
+.upstreamSelectForm .MuiMenuItem-root:hover {
+    background-color: #bbccf3;
+}
+
+.upstreamSelectForm .MuiMenuItem-root.Mui-selected {
+    background-color: #1abc9c;
+}
+
+.upstreamSelectForm .MuiMenuItem-root.Mui-selected:hover {
+    background-color: #16a085; 
+}
+
+
+.overallHealthCard,
+.serverStatusCard {
+    height: 80%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background-color: #ffffff;
+    border-radius: 20px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    transition: box-shadow 0.3s ease-in-out;
+}
+
+.overallHealthCard:hover,
+.serverStatusCard:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.overallHealthTitle,
+.serverStatusTitle {
+    width: 100%;
+    color: #2c3e50;
+    font-size: 1.5em;
+    font-weight: bold;
+    text-transform: uppercase;
+    text-align: center;
+    margin: 10px 10px 10px 10px;
+}
+
+.serverStatusList {
+    width: 100%;
+}
+
+.serverStatusList .MuiListItem-root {
+    padding: 10px;
     margin-bottom: 5px;
     background-color: #fff;
     border: 1px solid #ddd;
     border-radius: 4px;
+    transition: background-color 0.3s ease;
 }
 
-#upstreams select {
-    padding: 8px;
-    border-radius: 4px;
-    border: 1px solid #ccc;
-    background-color: #fff;
-    cursor: pointer;
-    width: 100%; 
+.serverStatusList .MuiListItem-root:hover {
+    background-color: #f0f8ff;
 }
 
-#upstreams select:focus {
-    outline: none;
-    border-color: #0056b3;
+.upstreamDetails {
+    margin-top: 40px; 
+    padding: 20px;
+    background-color: #2c3e50;
+    border-radius: 20px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    transition: box-shadow 0.3s ease-in-out;
 }
 
-
+.upstreamDetails:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}

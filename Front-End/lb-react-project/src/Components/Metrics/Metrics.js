@@ -28,7 +28,7 @@ const Metrics = () => {
         let intervalId;
         if (isToggled) {
             fetchMetrics();
-            intervalId = setInterval(fetchMetrics, 5000);
+            intervalId = setInterval(fetchMetrics, 500);
         }
 
         return () => clearInterval(intervalId);
@@ -37,11 +37,12 @@ const Metrics = () => {
     const handleChange = () => setIsToggled(!isToggled);
 
     return (
-        <FormGroup>
+        <section id="metrics">
+            <FormGroup>
             <FormControlLabel
-                control={<MaterialUISwitch checked={isToggled} onChange={handleChange} />}
-                label="Enable Metrics"
-            />
+            control={<MaterialUISwitch checked={isToggled} onChange={handleChange} />}
+            label={<span style={{ color: 'white' }}>Enable Metrics</span>}
+        />
             {isToggled && (
                 <div className="metrics-container">
                     <div className="metrics-box">
@@ -59,7 +60,7 @@ const Metrics = () => {
                                 <YAxis />
                                 <Tooltip />
                                 <Legend />
-                                <Bar dataKey="Requests" fill="#8884d8" />
+                                <Bar dataKey="Requests" fill="#4f7192be" />
                             </BarChart>
                         </ResponsiveContainer>
                     </div>
@@ -72,7 +73,7 @@ const Metrics = () => {
                                 <YAxis />
                                 <Tooltip />
                                 <Legend />
-                                <Bar dataKey="Connections" fill="#82ca9d" />
+                                <Bar dataKey="Connections" fill="#4f7192be" />
                             </BarChart>
                         </ResponsiveContainer>
                     </div>
@@ -91,6 +92,7 @@ const Metrics = () => {
                 </div>
             )}
         </FormGroup>
+        </section>
     );
 };
 
@@ -105,7 +107,6 @@ const parseMetrics = (data) => {
 
     lines.forEach(line => {
         let matches;
-        // Assuming your actual Prometheus data format matches these patterns
         if (line.includes('loadbalancer_rate_limit_hits_total')) {
             matches = line.match(/loadbalancer_rate_limit_hits_total{upstream="([^"]+)"} (\d+)/);
             if (matches) {
@@ -139,6 +140,5 @@ const parseMetrics = (data) => {
     });
     return metrics;
 };
-
 
 export default Metrics;

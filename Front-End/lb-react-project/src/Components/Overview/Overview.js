@@ -14,7 +14,7 @@ function Overview() {
             const isHealthy = response.status === 200;
             const newStatus = {
                 status: isHealthy ? 'Healthy' : 'Unhealthy',
-                color: isHealthy ? '#007BFF' : '#FF6347',
+                color: isHealthy ? '#4f7192be' : '#FF6347',
                 timestamp: new Date().toLocaleTimeString()
             };
             setServerHealth(newStatus);
@@ -36,9 +36,9 @@ function Overview() {
     return (
         <section id="overview">
             <div className="overview">
-                <Grid container spacing={10}>
-                    <Grid item xs={9}>
-                        <Box className="chartBox" style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Grid container spacing={4}>
+                    <Grid item xs={12} md={9}>
+                        <Box className="chartBox">
                             <ResponsiveContainer width="40%" height={200}>
                                 <PieChart>
                                     <Pie
@@ -54,7 +54,14 @@ function Overview() {
                                             <Cell key={`cell-${index}`} fill={entry.fill} />
                                         ))}
                                     </Pie>
-                                    <text x="50%" y="50%" fill="#2c3e50" textAnchor="middle" dominantBaseline="central">
+                                    <text
+                                        x="50%"
+                                        y="50%"
+                                        fill="#2c3e50"
+                                        textAnchor="middle"
+                                        dominantBaseline="central"
+                                        style={{ fontSize: '1.5em', fontWeight: 'bold', fontFamily: 'Arial, sans-serif' }}
+                                    >
                                         {serverHealth.status}
                                     </text>
                                 </PieChart>
@@ -70,14 +77,10 @@ function Overview() {
                             </ResponsiveContainer>
                         </Box>
                     </Grid>
-                    <Grid item xs={3}>
+                    <Grid item xs={12} md={3}>
                         <Box className="entryPoints">
-                            <Typography variant="h6" style={{ color: '#2c3e50' }}>Entry Points</Typography>
-                            <ul>
-                                <li>Port 80</li>
-                                <li>Port 443</li>
-                                <li>Port 8080</li>
-                            </ul>
+                            <Typography variant="h6" className="entryPointsTitle">Entry Points</Typography>
+                            <Typography variant="h3" className="entryPointPort">:9000</Typography>
                         </Box>
                     </Grid>
                 </Grid>

@@ -7,13 +7,15 @@ import Metrics from './Components/Metrics/Metrics';
 
 function App() {
   return (
-    <>
-      <Header />
-      <Overview />
-      <Upstreams />
-      <Metrics />
-      <Footer />
-    </>
+    <div className="App">
+      <Header className="App-header" />
+      <main className="App-main">
+        <Overview />
+        <Upstreams />
+        <Metrics />
+      </main>
+      <Footer className="App-footer" />
+    </div>
   );
 }
 
