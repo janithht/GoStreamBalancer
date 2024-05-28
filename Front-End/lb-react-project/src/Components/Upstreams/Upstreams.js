@@ -63,45 +63,49 @@ const Upstreams = () => {
             {selectedUpstreamDetails && (
                 <Grid container spacing={2} className="upstreamDetails">
                     <Grid item xs={12} md={6}>
-                        <Card variant="outlined" className="overallHealthCard">
-                            <Typography variant="h6" className="overallHealthTitle">
-                                Overall Health
-                            </Typography>
-                            <ResponsiveContainer width="100%" height={300}>
-                                <PieChart>
-                                    <Pie
-                                        data={prepareChartData(selectedUpstreamDetails)}
-                                        dataKey="value"
-                                        nameKey="name"
-                                        cx="50%"
-                                        cy="50%"
-                                        outerRadius={100}
-                                        label
-                                    >
-                                        {prepareChartData(selectedUpstreamDetails).map((entry, index) => (
-                                            <Cell key={`cell-${index}`} fill={entry.fillColor} />
-                                        ))}
-                                    </Pie>
-                                    <Tooltip />
-                                    <Legend layout="horizontal" align="right" verticalAlign="bottom" />
-                                </PieChart>
-                            </ResponsiveContainer>
-                        </Card>
-                    </Grid>
-                    <Grid item xs={12} md={6}>
-                        <Card variant="outlined" className="serverStatusCard">
-                            <Typography variant="h6" className="serverStatusTitle">
-                                Server Statuses
-                            </Typography>
-                            <List className="serverStatusList">
-                                {selectedUpstreamDetails.servers.map((server, index) => (
-                                    <ListItem key={index} divider>
-                                        <ListItemText primary={`URL: ${server.url}`} secondary={`Status: ${server.status ? 'Healthy' : 'Down'}, Last Check: ${new Date(server.lastCheck).toLocaleString()}, Last Success: ${server.lastSuccess ? 'Yes' : 'No'}`} />
-                                    </ListItem>
-                                ))}
-                            </List>
-                        </Card>
-                    </Grid>
+                    <Card variant="outlined" className="overallHealthCard">
+                        <Typography variant="h6" className="overallHealthTitle">
+                            Overall Health
+                        </Typography>
+                        <ResponsiveContainer width="100%" height={300}>
+                            <PieChart>
+                                <Pie
+                                    data={prepareChartData(selectedUpstreamDetails)}
+                                    dataKey="value"
+                                    nameKey="name"
+                                    cx="50%"
+                                    cy="50%"
+                                    outerRadius={100}
+                                    label
+                                >
+                                    {prepareChartData(selectedUpstreamDetails).map((entry, index) => (
+                                        <Cell key={`cell-${index}`} fill={entry.fillColor} />
+                                    ))}
+                                </Pie>
+                                <Tooltip />
+                                <Legend layout="horizontal" align="right" verticalAlign="bottom" />
+                            </PieChart>
+                        </ResponsiveContainer>
+                    </Card>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                    <Card variant="outlined" className="serverStatusCard">
+                        <Typography variant="h6" className="serverStatusTitle">
+                            Server Statuses
+                        </Typography>
+                        <List className="serverStatusList">
+                            {selectedUpstreamDetails.servers.map((server, index) => (
+                                <ListItem key={index} divider>
+                                    <ListItemText 
+                                        primary={`URL: ${server.url}`} 
+                                        secondary={`Status: ${server.status ? 'Healthy' : 'Down'}, Last Check: ${new Date(server.lastCheck).toLocaleString()}, Last Success: ${server.lastSuccess ? 'Yes' : 'No'}`} 
+                                    />
+                                </ListItem>
+                            ))}
+                        </List>
+                    </Card>
+                </Grid>
+
                 </Grid>
             )}
         </Box>
