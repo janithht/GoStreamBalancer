@@ -18,7 +18,7 @@ const Metrics = () => {
     useEffect(() => {
         const fetchMetrics = async () => {
             try {
-                const { data } = await axios.get('http://localhost:9000/metrics');
+                const { data } = await axios.get('http://localhost:8000/metrics');
                 setMetricsData(parseMetrics(data));
             } catch (error) {
                 console.error('Error fetching metrics:', error);

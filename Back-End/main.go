@@ -7,11 +7,13 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/janithht/GoStreamBalancer/cmd/serverhttp"
+	"github.com/janithht/GoStreamBalancer/cmd/httpproxyserver"
+	"github.com/janithht/GoStreamBalancer/cmd/tcploadbalancer"
 	"github.com/janithht/GoStreamBalancer/internal/config"
 
 	"github.com/janithht/GoStreamBalancer/internal/healthchecks"
 	"github.com/janithht/GoStreamBalancer/internal/helpers"
+	"github.com/janithht/GoStreamBalancer/metrics"
 )
 
 func main() {
@@ -32,18 +34,16 @@ func main() {
 	healthChecker := healthchecks.NewHealthCheckerImpl(cfg.Upstreams, httpClient, listener)
 	go healthChecker.StartPolling(ctx)
 
-	/*
-		portMap := make(map[int]string)
-		basePort := 3000
-		for i, upstream := range cfg.Upstreams {
-			portMap[basePort+i] = upstream.Name
-		}
+	portMap := make(map[int]string)
+	basePort := 5000
+	for i, upstream := range cfg.Upstreams {
+		portMap[basePort+i] = upstream.Name
+	}
 
-		upstreamMap := config.BuildUpstreamMap(cfg.Upstreams)
-		servertcp.StartLoadBalancers(upstreamMap, portMap)
-	*/
 	upstreamMap, upstreamConfigMap := config.BuildUpstreamConfigs(cfg.Upstreams)
-	go serverhttp.StartServer(upstreamMap, upstreamConfigMap, cfg, httpClient, listener)
+	tcploadbalancer.StartLoadBalancers(upstreamMap, portMap)
+	go httpproxyserver.StartServer(upstreamMap, upstreamConfigMap, cfg, httpClient, listener)
+	go metrics.StartMetricsServer()
 
 	select {
 	case <-sigs:

@@ -1,4 +1,4 @@
-package serverhttp
+package httpproxyserver
 
 import (
 	"encoding/json"
@@ -14,7 +14,6 @@ import (
 	"github.com/janithht/GoStreamBalancer/internal/config"
 	"github.com/janithht/GoStreamBalancer/internal/helpers"
 	"github.com/janithht/GoStreamBalancer/metrics"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func StartServer(upstreamMap map[string]*config.IteratorImpl, upstreamConfigMap map[string]*config.Upstream, cfg *config.Config, httpClient *http.Client, listener *helpers.SimpleHealthCheckListener) {
@@ -34,7 +33,6 @@ func StartServer(upstreamMap map[string]*config.IteratorImpl, upstreamConfigMap 
 	mux.HandleFunc("/debug/pprof/", http.DefaultServeMux.ServeHTTP)
 	mux.HandleFunc("/debug/pprof/profile", http.DefaultServeMux.ServeHTTP)
 	mux.HandleFunc("/debug/pprof/heap", http.DefaultServeMux.ServeHTTP)
-	mux.Handle("/metrics", promhttp.HandlerFor(metrics.CustomRegistry, promhttp.HandlerOpts{}))
 
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		startTime := time.Now()

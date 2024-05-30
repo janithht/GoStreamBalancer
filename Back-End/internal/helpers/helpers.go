@@ -25,10 +25,18 @@ func ParseHostPort(rawUrl string) (host, port string, err error) {
 	return host, port, nil
 }
 
-func ProxyData(src, dst net.Conn) {
-	_, err := io.Copy(dst, src)
+func ProxyData(dst, src net.Conn) {
+	defer dst.Close()
+	defer src.Close()
+
+	copyBuffer := make([]byte, 32*1024)
+
+	src.SetDeadline(time.Now().Add(2 * time.Second))
+	dst.SetDeadline(time.Now().Add(2 * time.Second))
+
+	_, err := io.CopyBuffer(dst, src, copyBuffer)
 	if err != nil {
-		log.Printf("Error during data transfer: %v", err)
+		log.Printf("Error proxying data: %v", err)
 	}
 }
 
