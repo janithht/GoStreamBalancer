@@ -9,6 +9,7 @@ import (
 	"github.com/janithht/GoStreamBalancer/database"
 	"github.com/janithht/GoStreamBalancer/internal/config"
 	"github.com/janithht/GoStreamBalancer/internal/helpers"
+	"github.com/janithht/GoStreamBalancer/metrics"
 )
 
 func StartLoadBalancers(upstreamMap map[string]*config.IteratorImpl, portMap map[int]string) {
@@ -52,6 +53,15 @@ func handleConnection(clientConn net.Conn, upstreamName string, upstreamMap map[
 		return
 	}
 
+	server.IncrementConnections()
+	metrics.SetTCPConnections(upstreamName, float64(server.ActiveConnections))
+	metrics.RecordTCPRequest(upstreamName)
+
+	defer func() {
+		server.DecrementConnections()
+		metrics.SetTCPConnections(upstreamName, float64(server.ActiveConnections))
+	}()
+
 	host, port, err := helpers.ParseHostPort(server.Url)
 	if err != nil {
 		log.Printf("Invalid server URL: %v", err)
@@ -67,9 +77,10 @@ func handleConnection(clientConn net.Conn, upstreamName string, upstreamMap map[
 	}
 	defer serverConn.Close()
 
+	fmt.Fprintf(serverConn, "GET / HTTP/1.1\r\nHost: localhost\r\n\r\n")
 	clientIP := clientConn.RemoteAddr().String()
 	database.AddConnection(database.ConnectionData{ClientIP: clientIP, ServerURL: server.Url})
 
-	go helpers.ProxyData(clientConn, serverConn)
-	helpers.ProxyData(serverConn, clientConn)
+	go helpers.ProxyData(clientConn, serverConn, upstreamName)
+	helpers.ProxyData(serverConn, clientConn, upstreamName)
 }

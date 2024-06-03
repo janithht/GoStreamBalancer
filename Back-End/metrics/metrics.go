@@ -43,10 +43,24 @@ var (
 		Help:    "Histogram of response times of the load balancer in milliseconds",
 		Buckets: prometheus.LinearBuckets(10, 10, 10), // Start at 10ms with 10ms increments
 	})
+	TCPActiveConnections = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "tcp_loadbalancer_active_connections",
+		Help: "Current number of active TCP connections to upstream servers.",
+	}, []string{"upstream"})
+
+	TCPThroughput = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: "tcp_loadbalancer_throughput_total",
+		Help: "Total number of TCP requests processed by the load balancer.",
+	}, []string{"upstream"})
+
+	TCPBytesTransferred = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: "tcp_loadbalancer_bytes_transferred_total",
+		Help: "Total number of bytes transferred by the load balancer.",
+	}, []string{"upstream"})
 )
 
 func init() {
-	CustomRegistry.MustRegister(TotalRequests, SuccessfulRequests, RequestErrors, UpstreamConnections, RateLimitHits, RequestLatency, ResponseTimes)
+	CustomRegistry.MustRegister(TotalRequests, SuccessfulRequests, RequestErrors, UpstreamConnections, RateLimitHits, RequestLatency, ResponseTimes, TCPActiveConnections, TCPThroughput, TCPBytesTransferred)
 }
 
 func RecordRequest(upstream string) {
@@ -67,4 +81,16 @@ func SetConnections(upstream string, count float64) {
 
 func RecordRateLimitHit(upstream string) {
 	RateLimitHits.WithLabelValues(upstream).Inc()
+}
+
+func RecordTCPRequest(upstream string) {
+	TCPThroughput.WithLabelValues(upstream).Inc()
+}
+
+func SetTCPConnections(upstream string, count float64) {
+	TCPActiveConnections.WithLabelValues(upstream).Set(count)
+}
+
+func RecordThroughput(upstream string, bytes float64) {
+	TCPBytesTransferred.WithLabelValues(upstream).Add(bytes)
 }

@@ -24,7 +24,8 @@ func StartMetricsServer() {
 	mux.Handle("/connections", http.HandlerFunc(getConnections))
 
 	if err := http.ListenAndServe(":8000", handlerWithCORS); err != nil {
-		log.Printf("Failed to start server: %v", err)
+		log.Fatalf("Failed to start server: %v", err)
+		return
 	}
 }
 
@@ -56,7 +57,7 @@ func getConnections(w http.ResponseWriter, r *http.Request) {
 
 	rows, err := database.DB.Query(query, args...)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Failed to execute query", http.StatusInternalServerError)
 		return
 	}
 	defer rows.Close()
@@ -65,7 +66,7 @@ func getConnections(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var clientIP, serverURL, timestamp string
 		if err := rows.Scan(&clientIP, &serverURL, &timestamp); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			http.Error(w, "Failed to scan row", http.StatusInternalServerError)
 			return
 		}
 		connections = append(connections, map[string]interface{}{
@@ -75,6 +76,13 @@ func getConnections(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
+	if err := rows.Err(); err != nil {
+		http.Error(w, "Failed to iterate over rows", http.StatusInternalServerError)
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(connections)
+	if err := json.NewEncoder(w).Encode(connections); err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+	}
 }

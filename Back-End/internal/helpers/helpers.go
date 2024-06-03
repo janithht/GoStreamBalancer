@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/janithht/GoStreamBalancer/internal/config"
+	"github.com/janithht/GoStreamBalancer/metrics"
 )
 
 type SimpleHealthCheckListener struct{}
@@ -25,19 +26,13 @@ func ParseHostPort(rawUrl string) (host, port string, err error) {
 	return host, port, nil
 }
 
-func ProxyData(dst, src net.Conn) {
-	defer dst.Close()
-	defer src.Close()
-
-	copyBuffer := make([]byte, 32*1024)
-
-	src.SetDeadline(time.Now().Add(2 * time.Second))
-	dst.SetDeadline(time.Now().Add(2 * time.Second))
-
-	_, err := io.CopyBuffer(dst, src, copyBuffer)
+func ProxyData(src, dst net.Conn, upstreamName string) {
+	bytesTransferred, err := io.Copy(dst, src)
 	if err != nil {
-		log.Printf("Error proxying data: %v", err)
+		log.Printf("Error during data transfer: %v", err)
 	}
+
+	metrics.RecordThroughput(upstreamName, float64(bytesTransferred))
 }
 
 func (l *SimpleHealthCheckListener) HealthChecked(server *config.UpstreamServer, time time.Time) {

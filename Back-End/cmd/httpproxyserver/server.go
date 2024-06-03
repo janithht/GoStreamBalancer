@@ -2,6 +2,7 @@ package httpproxyserver
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"net/http/httputil"
@@ -25,9 +26,13 @@ func StartServer(upstreamMap map[string]*config.IteratorImpl, upstreamConfigMap 
 
 	handlerWithCORS := handlers.CORS(originsOk, headersOk, methodsOk)(mux)
 
-	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/healthCheck", func(w http.ResponseWriter, r *http.Request) {
+		response := map[string]string{
+			"status": "Load Balancer Active",
+		}
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Load Balancer Active"))
+		json.NewEncoder(w).Encode(response)
 	})
 
 	mux.HandleFunc("/debug/pprof/", http.DefaultServeMux.ServeHTTP)
@@ -35,6 +40,8 @@ func StartServer(upstreamMap map[string]*config.IteratorImpl, upstreamConfigMap 
 	mux.HandleFunc("/debug/pprof/heap", http.DefaultServeMux.ServeHTTP)
 
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		response := map[string]interface{}{}
 		startTime := time.Now()
 
 		upstreamName := r.Header.Get("X-Upstream")
@@ -48,17 +55,31 @@ func StartServer(upstreamMap map[string]*config.IteratorImpl, upstreamConfigMap 
 			metrics.ResponseTimes.Observe(responseTime)
 		}()
 
-		if !exists || !configExists {
+		if !configExists {
 			metrics.RecordError("404", upstreamName)
-			http.Error(w, "Upstream not found or has no servers", http.StatusNotFound)
+			response["status_code"] = 404
+			response["message"] = fmt.Sprintf("Upstream '%s' not found", upstreamName)
+			w.WriteHeader(http.StatusNotFound)
+			json.NewEncoder(w).Encode(response)
+			return
+		}
+
+		if !exists {
+			metrics.RecordError("503", upstreamName)
+			response["status_code"] = 503
+			response["message"] = fmt.Sprintf("Upstream '%s' not available", upstreamName)
+			w.WriteHeader(http.StatusServiceUnavailable)
+			json.NewEncoder(w).Encode(response)
 			return
 		}
 
 		if upstreamConfig.Limiter != nil && !upstreamConfig.Limiter.Allow() {
 			metrics.RecordError("429", upstreamName)
 			metrics.RecordRateLimitHit(upstreamName)
-			log.Printf("Rate limit exceeded for %s", upstreamName)
-			http.Error(w, "Rate limit exceeded", http.StatusTooManyRequests)
+			response["status_code"] = 429
+			response["message"] = fmt.Sprintf("Rate limit exceeded for %s", upstreamName)
+			w.WriteHeader(http.StatusTooManyRequests)
+			json.NewEncoder(w).Encode(response)
 			return
 		}
 
@@ -76,13 +97,19 @@ func StartServer(upstreamMap map[string]*config.IteratorImpl, upstreamConfigMap 
 			server = iterator.MatchServer(clientIP)
 		default:
 			metrics.RecordError("400", upstreamName)
-			http.Error(w, "Unsupported load-balancing type", http.StatusBadRequest)
+			response["status_code"] = 400
+			response["message"] = "Unsupported load balancing type"
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(response)
 			return
 		}
 
 		if server == nil {
 			metrics.RecordError("503", upstreamName)
-			http.Error(w, "No available upstream servers", http.StatusServiceUnavailable)
+			response["status_code"] = 503
+			response["message"] = "No available upstream servers"
+			w.WriteHeader(http.StatusServiceUnavailable)
+			json.NewEncoder(w).Encode(response)
 			return
 		}
 
@@ -93,18 +120,27 @@ func StartServer(upstreamMap map[string]*config.IteratorImpl, upstreamConfigMap 
 
 		url, err := url.Parse(server.Url)
 		if err != nil {
-			log.Printf("Failed to parse target URL: %v", err)
+			response["status_code"] = 500
+			response["message"] = fmt.Sprintf("Failed to parse target URL: %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(response)
 			return
 		}
+
 		proxy := httputil.NewSingleHostReverseProxy(url)
 		proxy.ServeHTTP(w, r)
 	})
 
 	mux.HandleFunc("/upstream-health", func(w http.ResponseWriter, r *http.Request) {
+		response := map[string]interface{}{}
 		w.Header().Set("Content-Type", "application/json")
 		encoder := json.NewEncoder(w)
 		if err := encoder.Encode(config.CollectHealthData(upstreamConfigMap)); err != nil {
-			http.Error(w, "Failed to encode health data", http.StatusInternalServerError)
+			response["status_code"] = 500
+			response["message"] = fmt.Sprintf("Failed to encode health data: %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(response)
+			return
 		}
 	})
 

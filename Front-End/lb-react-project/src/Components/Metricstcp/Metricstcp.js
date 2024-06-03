@@ -1,131 +1,127 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Container, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, CircularProgress, TextField, Button } from '@mui/material';
-import './Metricstcp.css'; // Import the CSS file
+import { Line, LineChart, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import FormGroup from '@mui/material/FormGroup';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import MaterialUISwitch from '../Switch';
+import './Metricstcp.css';
 
-function Metricstcp() {
-    const [connections, setConnections] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [filters, setFilters] = useState({
-        client_ip: '',
-        server_url: '',
-        start_date: '',
-        end_date: ''
+const TCPMetrics = () => {
+    const [isToggled, setIsToggled] = useState(false);
+    const [metricsData, setMetricsData] = useState({
+        tcpActiveConnections: {},
+        tcpBytesTransferred: {},
+        tcpThroughput: {},
     });
 
-    const fetchConnections = () => {
-        setLoading(true);
-        const params = new URLSearchParams(filters);
-        axios.get(`http://localhost:8000/connections?${params.toString()}`)
-            .then(response => {
-                setConnections(response.data || []);
-                setLoading(false);
-            })
-            .catch(error => {
-                console.error("There was an error fetching the data!", error);
-                setLoading(false);
-            });
-    };
-
     useEffect(() => {
-        fetchConnections();
-    }, []);
+        const fetchMetrics = async () => {
+            try {
+                const { data } = await axios.get('http://localhost:8000/metrics');
+                setMetricsData(parseTCPMetrics(data));
+            } catch (error) {
+                console.error('Error fetching metrics:', error);
+            }
+        };
 
-    const handleInputChange = (e) => {
-        const { name, value } = e.target;
-        setFilters({
-            ...filters,
-            [name]: value
-        });
-    };
+        let intervalId;
+        if (isToggled) {
+            fetchMetrics();
+            intervalId = setInterval(fetchMetrics, 500);
+        }
 
-    const handleFilterSubmit = (e) => {
-        e.preventDefault();
-        fetchConnections();
-    };
+        return () => clearInterval(intervalId);
+    }, [isToggled]);
+
+    const handleChange = () => setIsToggled(!isToggled);
 
     return (
-        <Container className="container">
-            <Typography variant="h4" component="h1" gutterBottom className="title">
-                Load Balancer Connections
-            </Typography>
-            <form onSubmit={handleFilterSubmit} className="filter-form">
-                <TextField
-                    label="Client IP"
-                    name="client_ip"
-                    value={filters.client_ip}
-                    onChange={handleInputChange}
-                    className="filter-input"
-                    variant="outlined"
-                    size="small"
+        <section id="metrics">
+            <FormGroup>
+                <FormControlLabel
+                    control={<MaterialUISwitch checked={isToggled} onChange={handleChange} />}
+                    label={<span style={{ color: 'white' }}>Enable TCP Metrics</span>}
                 />
-                <TextField
-                    label="Server URL"
-                    name="server_url"
-                    value={filters.server_url}
-                    onChange={handleInputChange}
-                    className="filter-input"
-                    variant="outlined"
-                    size="small"
-                />
-                <TextField
-                    label="Start Date"
-                    name="start_date"
-                    type="date"
-                    value={filters.start_date}
-                    onChange={handleInputChange}
-                    className="filter-input"
-                    variant="outlined"
-                    size="small"
-                    InputLabelProps={{
-                        shrink: true,
-                    }}
-                />
-                <TextField
-                    label="End Date"
-                    name="end_date"
-                    type="date"
-                    value={filters.end_date}
-                    onChange={handleInputChange}
-                    className="filter-input"
-                    variant="outlined"
-                    size="small"
-                    InputLabelProps={{
-                        shrink: true,
-                    }}
-                />
-                <Button type="submit" variant="contained" color="primary" className="filter-button">
-                    Filter
-                </Button>
-            </form>
-            {loading ? (
-                <div className="loading-spinner">
-                    <CircularProgress />
-                </div>
-            ) : (
-                <TableContainer component={Paper} className="table-container">
-                    <Table>
-                        <TableHead className="table-header">
-                            <TableRow>
-                                <TableCell className="table-cell">Client IP</TableCell>
-                                <TableCell className="table-cell">Server URL</TableCell>
-                                <TableCell className="table-cell">Timestamp</TableCell>
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
-                            {connections.map((conn, index) => (
-                                <TableRow key={index}>
-                                    <TableCell>{conn.client_ip}</TableCell>
-                                    <TableCell>{conn.server_url}</TableCell>
-                                    <TableCell>{conn.timestamp}</TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </TableContainer>
-            )}
-        </Container>
+                {isToggled && (
+                    <div className="metrics-container">
+                        <div className="metrics-box">
+                            <h2>TCP Active Connections</h2>
+                            <ResponsiveContainer width="100%" height={300}>
+                                <BarChart data={Object.entries(metricsData.tcpActiveConnections).map(([key, value]) => ({ name: key, Connections: value }))}>
+                                    <CartesianGrid strokeDasharray="3 3" />
+                                    <XAxis dataKey="name" />
+                                    <YAxis />
+                                    <Tooltip />
+                                    <Legend />
+                                    <Bar dataKey="Connections" fill="#4f7192be" />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                         <div className="metrics-box">
+                            <h2>TCP Bytes Transferred</h2>
+                            <ResponsiveContainer width="100%" height={300}>
+                                <LineChart data={Object.entries(metricsData.tcpBytesTransferred).map(([key, value]) => ({ name: key, Bytes: value }))}>
+                                    <CartesianGrid strokeDasharray="3 3" />
+                                    <XAxis dataKey="name" />
+                                    <YAxis />
+                                    <Tooltip />
+                                    <Legend />
+                                    <Line type="monotone" dataKey="Bytes" stroke="#82ca9d" />
+                                </LineChart>
+                            </ResponsiveContainer>
+                        </div>
+                        <div className="metrics-box">
+                            <h2>TCP Throughput</h2>
+                            <ResponsiveContainer width="100%" height={300}>
+                                <BarChart data={Object.entries(metricsData.tcpThroughput).map(([key, value]) => ({ name: key, Requests: value }))}>
+                                    <CartesianGrid strokeDasharray="3 3" />
+                                    <XAxis dataKey="name" />
+                                    <YAxis />
+                                    <Tooltip />
+                                    <Legend />
+                                    <Bar dataKey="Requests" fill="#4f7192be" />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
+                )}
+            </FormGroup>
+        </section>
     );
-}
+};
 
-export default Metricstcp;
+const parseTCPMetrics = (data) => {
+    const lines = data.split('\n');
+    const metrics = {
+        tcpActiveConnections: {},
+        tcpBytesTransferred: {},
+        tcpThroughput: {},
+    };
+
+    lines.forEach(line => {
+        let matches;
+        if (line.includes('tcp_loadbalancer_active_connections')) {
+            matches = line.match(/tcp_loadbalancer_active_connections{upstream="([^"]+)"} (\d+)/);
+            if (matches) {
+                metrics.tcpActiveConnections[matches[1]] = parseInt(matches[2], 10);
+            }
+        }
+
+        if (line.includes('tcp_loadbalancer_bytes_transferred_total')) {
+            matches = line.match(/tcp_loadbalancer_bytes_transferred_total{upstream="([^"]+)"} (\d+)/);
+            if (matches) {
+                metrics.tcpBytesTransferred[matches[1]] = parseInt(matches[2], 10);
+            }
+        }
+
+        if (line.includes('tcp_loadbalancer_throughput_total')) {
+            matches = line.match(/tcp_loadbalancer_throughput_total{upstream="([^"]+)"} (\d+)/);
+            if (matches) {
+                metrics.tcpThroughput[matches[1]] = parseInt(matches[2], 10);
+            }
+        }
+    });
+    return metrics;
+};
+
+export default TCPMetrics;

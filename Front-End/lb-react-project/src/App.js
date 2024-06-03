@@ -5,6 +5,7 @@ import Upstreams from './Components/Upstreams/Upstreams';
 import Footer from './Components/Footer/Footer';
 import Metrics from './Components/Metrics/Metrics';
 import Metricstcp from './Components/Metricstcp/Metricstcp';
+import Requestdata from './Components/Requestdata/Requestdata';
 import { useState } from 'react';
 
 function App() {
@@ -27,6 +28,7 @@ function App() {
         ) : (
           <>
             <Upstreams />
+            <Requestdata />
             <Metricstcp />
           </>
         )}

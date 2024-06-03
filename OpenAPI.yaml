@@ -1,0 +1,309 @@
+openapi: 3.0.0
+info:
+  version: 1.0.0
+  title: ' GoStream Load Balancer API'
+  description: >-
+    This API manages routing client requests to the appropriate backend server based on the configured load balancing strategy. It provides healthcheck status and detailed metrics for monitoring.
+servers:
+  - description: Primary Load Balancer proxy server
+    url: 'http://localhost:3000'
+  - description: Monitoring and data ingestion server
+    url: 'http://localhost:8000'
+paths:
+#Proxy server endpoints
+  /health:
+    get:
+      summary: Get load balancer health status
+      responses:
+        '200':
+          description: Load Balancer is active
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "Load Balancer Active"
+        '503':
+          description: Load Balancer/Service is not available
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "Load Balancer Not Available"
+  /:
+    get:
+      summary: Route requests to upstream servers based on load balancing strategy
+      parameters:
+        - name: X-Upstream
+          in: header
+          required: true
+          schema:
+            type: string
+            description: Name of the upstream server
+      responses:
+        '200':
+          description: Request successfully proxied to an upstream server
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: 
+                    type: string
+                    example: "Request Served Successfully"
+                  status_code:
+                    type: integer
+                    example: 200
+        '404':
+            description: Upstream not found
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    message: 
+                      type: string
+                      example: "Upstream 'UPSTREAM NAME' not found"
+                    status_code:
+                      type: integer
+                      example: 404          
+        '503':
+          description: Upstream has no servers
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: 
+                    type: string
+                    example: "Upstream 'UPSTREAM NAME' not available"
+                  status_code:
+                    type: integer
+                    example: 503
+        '429':
+          description: Rate limit exceeded for upstream
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: 
+                    type: string
+                    example: "Rate limit exceeded for 'UPSTREAM NAME'"
+                  status_code:
+                    type: integer
+                    example: 429
+        '400':
+          description: Unsupported load balancing type
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: 
+                    type: string
+                    example: "Unsupported load balancing type"
+                  status_code:
+                    type: integer
+                    example: 400
+        '500':
+          description: Error in parsing targeted URL
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: 
+                    type: string
+                    example: "Failed to parse target URL: ERROR"
+                  status_code:
+                    type: integer
+                    example: 500
+  /upstream-health:
+    get:
+      summary: Returns upstream server health statuses
+      responses:
+        '200':
+          description: Successfully returned health check details of upstream servers
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Upstream server healths returned successfully"
+                  status_code:
+                    type: integer
+                    example: 200
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                          example: "stub-server-1"
+                        servers:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              URL:
+                                type: string
+                                example: "http://localhost:8080"
+                              Status:
+                                type: string
+                                example: "healthy"
+                              LastCheck:
+                                type: string
+                                format: date-time
+                                example: "2024-06-03T10:00:00Z"
+                              LastSuccess:
+                                type: string
+                                format: date-time
+                                example: "2024-06-03T09:55:00Z"
+        '500':
+          description: Error in collecting health data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: 
+                    type: string
+                    example: "Failed to encode health data: ERROR"
+                  status_code:
+                    type: integer
+                    example: 500
+#Monitoring and data ingestion server end points
+  /metrics:
+    get:
+        summary: Scrape metrics from the load balancer proxy server and tcp load balancers
+        responses:
+          '200':
+            description: Prometheus metrics available
+            content:
+              text/plain:
+                schema:
+                  type: string
+                  example: |
+                    # HELP loadbalancer_request_latency_seconds Histogram of latencies for incoming requests.
+                    # TYPE loadbalancer_request_latency_seconds histogram
+                    loadbalancer_request_latency_seconds_bucket{upstream="stub-server-1",le="0.005"} 4164
+                    loadbalancer_request_latency_seconds_bucket{upstream="stub-server-1",le="0.01"} 4164
+                    loadbalancer_request_latency_seconds_bucket{upstream="stub-server-1",le="0.025"} 4164
+                    loadbalancer_request_latency_seconds_bucket{upstream="stub-server-1",le="0.05"} 4164
+                    loadbalancer_request_latency_seconds_bucket{upstream="stub-server-1",le="0.1"} 4164
+                    loadbalancer_request_latency_seconds_bucket{upstream="stub-server-1",le="0.25"} 4164
+                    loadbalancer_request_latency_seconds_bucket{upstream="stub-server-1",le="0.5"} 4164
+                    loadbalancer_request_latency_seconds_bucket{upstream="stub-server-1",le="1"} 6272
+                    loadbalancer_request_latency_seconds_bucket{upstream="stub-server-1",le="2.5"} 7615
+                    loadbalancer_request_latency_seconds_bucket{upstream="stub-server-1",le="5"} 10103
+                    loadbalancer_request_latency_seconds_bucket{upstream="stub-server-1",le="10"} 12836
+                    loadbalancer_request_latency_seconds_bucket{upstream="stub-server-1",le="+Inf"} 28228
+                    loadbalancer_request_latency_seconds_sum{upstream="stub-server-1"} 1.15116e+06
+                    loadbalancer_request_latency_seconds_count{upstream="stub-server-1"} 28228
+                    # HELP loadbalancer_requests_total Total number of requests processed by the load balancer.
+                    # TYPE loadbalancer_requests_total counter
+                    loadbalancer_requests_total{upstream="stub-server-1"} 28229
+                    loadbalancer_requests_total{upstream="stub-server-2"} 28204
+                    loadbalancer_requests_total{upstream="stub-server-3"} 28143
+                    # HELP loadbalancer_response_times_milliseconds Histogram of response times of the load balancer in milliseconds
+                    # TYPE loadbalancer_response_times_milliseconds histogram
+                    loadbalancer_response_times_milliseconds_bucket{le="10"} 29804
+                    loadbalancer_response_times_milliseconds_bucket{le="20"} 39350
+                    loadbalancer_response_times_milliseconds_bucket{le="30"} 46044
+                    loadbalancer_response_times_milliseconds_bucket{le="40"} 51110
+                    loadbalancer_response_times_milliseconds_bucket{le="50"} 54993
+                    loadbalancer_response_times_milliseconds_bucket{le="60"} 58570
+                    loadbalancer_response_times_milliseconds_bucket{le="70"} 61925
+                    loadbalancer_response_times_milliseconds_bucket{le="80"} 65101
+                    loadbalancer_response_times_milliseconds_bucket{le="90"} 67601
+                    loadbalancer_response_times_milliseconds_bucket{le="100"} 69895
+                    loadbalancer_response_times_milliseconds_bucket{le="+Inf"} 84484
+                    loadbalancer_response_times_milliseconds_sum 4.343586e+06
+                    loadbalancer_response_times_milliseconds_count 84484
+                    # HELP loadbalancer_upstream_connections Current number of active connections to upstream servers.
+                    # TYPE loadbalancer_upstream_connections gauge
+                    loadbalancer_upstream_connections{upstream="http://localhost:8080"} 14116
+                    loadbalancer_upstream_connections{upstream="http://localhost:8081"} 14116
+                    loadbalancer_upstream_connections{upstream="http://localhost:8082"} 14115
+                    loadbalancer_upstream_connections{upstream="http://localhost:8083"} 14114
+                    loadbalancer_upstream_connections{upstream="http://localhost:8084"} 28216
+  /connections:
+    get:
+      summary: Retrieve connection logs
+      description: Retrieve connection logs filtered by client IP, server URL, start date, and end date.
+      parameters:
+        - name: client_ip
+          in: query
+          description: Filter by client IP address
+          required: false
+          schema:
+            type: string
+        - name: server_url
+          in: query
+          description: Filter by server URL
+          required: false
+          schema:
+            type: string
+        - name: start_date
+          in: query
+          description: Filter by start date (inclusive)
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - name: end_date
+          in: query
+          description: Filter by end date (inclusive)
+          required: false
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: Successful response with a list of connection logs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    client_ip:
+                      type: string
+                      example: "192.168.1.1"
+                    server_url:
+                      type: string
+                      example: "http://localhost:8080"
+                    timestamp:
+                      type: string
+                      format: date-time
+                      example: "2023-06-03T10:07:08Z"
+        '400':
+          description: Invalid query parameter
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Invalid query parameter"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Failed to execute query"
