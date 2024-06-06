@@ -29,12 +29,6 @@ func InitDB() {
 	}
 
 	sqlStmt := `
-    CREATE TABLE IF NOT EXISTS connections (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        client_ip TEXT,
-        server_url TEXT,
-        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
 	CREATE TABLE IF NOT EXISTS migrations (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		name TEXT,
