@@ -1,34 +1,32 @@
-# Use the official Golang image as a builder stage to compile the application
-FROM golang:latest as builder
+# Start with the official Golang image
+FROM golang:1.20-alpine
 
-RUN mkdir /app
+# Install build dependencies
+RUN apk update && apk add --no-cache gcc musl-dev
 
-# Set the Current Working Directory inside the container
+# Set the environment variable to enable CGO
+ENV CGO_ENABLED=1
+
+# Set the current working directory inside the container
 WORKDIR /app
 
 # Copy go mod and sum files
 COPY go.mod go.sum ./
 
-# Download all dependencies. Dependencies will be cached if the go.mod and go.sum files are not changed
+# Download all dependencies
 RUN go mod download
 
-# Copy the source code into the container
+# Copy the source code and config.yaml into the container
 COPY . .
 
 # Build the Go app
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o load-balancer-go .
+RUN go build -o main main.go
 
-# Start a new stage from scratch for a lightweight final image
-FROM alpine:latest
+# Ensure the main binary is executable
+RUN chmod +x main
 
-LABEL maintainer="Janith Hathnagoda"
-
-# Copy the Pre-built binary file from the previous stage and the config file
-COPY --from=builder /app/load-balancer-go .
-COPY config.yaml .
-
-# Expose port 8000 to the outside world
-EXPOSE 8000
+# Expose the port that your app will run on
+EXPOSE 5000
 
 # Command to run the executable
-CMD ["./load-balancer-go"]
+CMD ["./main"]

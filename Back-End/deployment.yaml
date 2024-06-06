@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: go-stream-balancer-deployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: go-stream-balancer
+  template:
+    metadata:
+      labels:
+        app: go-stream-balancer
+    spec:
+      containers:
+      - name: go-stream-balancer
+        image: janithht/streambalancer:v01
+        ports:
+        - containerPort: 9000  # HTTP proxy server port
+        - containerPort: 5000  # Base TCP load balancer port
+        - containerPort: 8000  # Metrics server port
+        env:
+        - name: CONFIG_PATH
+          value: "/app/config.yaml" 
+        volumeMounts:
+        - name: config-volume
+          mountPath: /app  
+      volumes:
+      - name: config-volume
+        configMap:
+          name: go-stream-balancer-config 

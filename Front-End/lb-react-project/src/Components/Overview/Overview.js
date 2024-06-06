@@ -10,7 +10,7 @@ function Overview() {
 
     const fetchHealthStatus = async () => {
         try {
-            const response = await axios.get('http://localhost:9000/health');
+            const response = await axios.get('http://localhost:9000/healthCheck');
             const isHealthy = response.status === 200;
             const newStatus = {
                 status: isHealthy ? 'Healthy' : 'Unhealthy',

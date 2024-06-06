@@ -35,6 +35,11 @@ func InitDB() {
         server_url TEXT,
         timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
     );
+	CREATE TABLE IF NOT EXISTS migrations (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		name TEXT,
+		applied_at DATETIME DEFAULT CURRENT_TIMESTAMP
+	);
     `
 	_, err = DB.Exec(sqlStmt)
 	if err != nil {

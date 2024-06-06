@@ -10,10 +10,13 @@ import (
 	"github.com/janithht/GoStreamBalancer/internal/config"
 	"github.com/janithht/GoStreamBalancer/internal/helpers"
 	"github.com/janithht/GoStreamBalancer/metrics"
+	"github.com/janithht/GoStreamBalancer/migrations"
 )
 
 func StartLoadBalancers(upstreamMap map[string]*config.IteratorImpl, portMap map[int]string) {
 	database.InitDB()
+	migrations.Migrate(database.DB)
+
 	for port, upstreamName := range portMap {
 		go func(port int, upstreamName string) {
 			//log.Printf("Starting load balancer for %s on port %d", upstreamName, port)
