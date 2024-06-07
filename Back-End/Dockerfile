@@ -1,5 +1,5 @@
 # Start with the official Golang image
-FROM golang:1.20-alpine
+FROM golang:1.20-alpine as builder
 
 # Install build dependencies
 RUN apk update && apk add --no-cache gcc musl-dev
@@ -19,14 +19,24 @@ RUN go mod download
 # Copy the source code and config.yaml into the container
 COPY . .
 
-# Build the Go app
-RUN go build -o main main.go
+# Build the Go app with output named 'main'
+RUN go build -o main .
 
-# Ensure the main binary is executable
-RUN chmod +x main
+# Create a lightweight final image
+FROM alpine:latest
+
+# Install CA certificates
+RUN apk --no-cache add ca-certificates
+
+# Set the working directory in the final image
+WORKDIR /root/
+
+# Copy the binary and config.yaml from the builder stage
+COPY --from=builder /app/main .
+COPY --from=builder /app/config.yaml .
 
 # Expose the port that your app will run on
-EXPOSE 5000
+EXPOSE 4000
 
 # Command to run the executable
 CMD ["./main"]

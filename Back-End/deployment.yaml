@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: go-stream-balancer
-        image: janithht/streambalancer:v01
+        image: janithht/streambalancer:v02
         ports:
         - containerPort: 9000  # HTTP proxy server port
         - containerPort: 5000  # Base TCP load balancer port
