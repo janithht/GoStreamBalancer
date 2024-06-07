@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: go-stream-balancer-deployment
 spec:
-  replicas: 3
+  replicas: 1
   selector:
     matchLabels:
       app: go-stream-balancer
@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: go-stream-balancer
-        image: janithht/streambalancer:v02
+        image: janithht/streambalancer:v04
         ports:
         - containerPort: 9000  # HTTP proxy server port
         - containerPort: 5000  # Base TCP load balancer port

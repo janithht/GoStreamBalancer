@@ -1,7 +1,7 @@
 upstreams:
   - name: "stub-server-1"
     servers:
-      - url: "http://localhost:8080"
+      - url: "http://172.20.78.24:8080"
         status: true
       - url: "http://localhost:8081"
         status: true

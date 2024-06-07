@@ -8,14 +8,14 @@ spec:
   ports:
   - name: http 
     protocol: TCP
-    port: 80
+    port: 9000
     targetPort: 9000
   - name: tcp-load-balancer 
     protocol: TCP
-    port: 81
+    port: 5000
     targetPort: 5000
   - name: metrics 
     protocol: TCP
-    port: 82
+    port: 8000
     targetPort: 8000
   type: LoadBalancer
