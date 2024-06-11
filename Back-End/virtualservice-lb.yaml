@@ -1,0 +1,19 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: go-stream-balancer-virtualservice
+  namespace: default
+spec:
+  hosts:
+  - "*"
+  gateways:
+  - istio-system/my-gateway
+  http:
+  - match:
+    - uri:
+        prefix: /
+    route:
+    - destination:
+        host: go-stream-balancer-service
+        port:
+          number: 9000

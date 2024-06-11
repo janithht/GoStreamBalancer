@@ -2,6 +2,8 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: go-stream-balancer-deployment
+  labels:
+    app: go-stream-balancer
 spec:
   replicas: 1
   selector:
@@ -9,6 +11,8 @@ spec:
       app: go-stream-balancer
   template:
     metadata:
+      annotations:
+        sidecar.istio.io/inject: "true" 
       labels:
         app: go-stream-balancer
     spec:
@@ -28,4 +32,4 @@ spec:
       volumes:
       - name: config-volume
         configMap:
-          name: go-stream-balancer-config 
+          name: go-stream-balancer-config
