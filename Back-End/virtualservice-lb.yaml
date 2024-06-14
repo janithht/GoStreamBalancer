@@ -7,7 +7,7 @@ spec:
   hosts:
   - "*"
   gateways:
-  - istio-system/my-gateway
+  - default/my-gateway
   http:
   - match:
     - uri:
@@ -17,3 +17,5 @@ spec:
         host: go-stream-balancer-service
         port:
           number: 9000
+        subset: v1
+      weight: 100
